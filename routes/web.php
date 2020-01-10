@@ -11,6 +11,8 @@
 |
 */
 
+use Illuminate\Support\Facades\Route as Route;
+
 $router->get('/', function () use ($router) {
     return $router->app->version();
 });
@@ -22,9 +24,21 @@ $router->get('/user/{id}','UserController@show');
 $router->put('/user/{id}','UserController@update');
 $router->delete('user/{id}','UserController@destroy');
 
-// End-Point Petugas
-$router->get('/petugas', 'PetugasController@index');
-$router->post('/petugas', 'PetugasController@store');
-$router->get('/petugas/{id}', 'PetugasController@show');
-$router->put('/petugas/{id}', 'PetugasController@update');
-$router->delete('petugas/{id}', 'PetugasController@destroy');
+/**
+ * Petugas Authentication
+ */
+ $router->group(['prefix' => 'auth'], function() use ($router) {
+    $router->post('/petugas/register', 'Auth\\PetugasAuthController@register');
+    $router->post('/petugas/login', 'Auth\\PetugasAuthController@login');
+ });
+
+/**
+ * Petugas with Authentication
+ */
+Route::group(['middleware' => ['auth']], function ($router) {
+    $router->get('/petugas', 'PetugasController@index');
+    $router->post('/petugas', 'PetugasController@store');
+    $router->get('/petugas/{id}', 'PetugasController@show');
+    $router->put('/petugas/{id}', 'PetugasController@update');
+    $router->delete('petugas/{id}', 'PetugasController@destroy');
+});

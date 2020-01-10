@@ -4,6 +4,7 @@
     use App\Models\Petugas;
     use Illuminate\Http\Request;
     use Illuminate\Support\Facades\Validator;
+    use Illuminate\Support\Facades\Auth;
 
 class PetugasController extends Controller {
         
@@ -13,10 +14,10 @@ class PetugasController extends Controller {
      * @return \Illuminate\Http\Response
      */
      public function index(Request $request) {
-        $acceptHeader = $request->header('Accept');
+         $acceptHeader = $request->header('Accept');
 
-        // Validasi hanya pplication/json atau application/xml yang valid
-        if ($acceptHeader === 'application/json' || $acceptHeader === 'application/xml') {
+         // Validasi hanya pplication/json atau application/xml yang valid
+         if ($acceptHeader === 'application/json' || $acceptHeader === 'application/xml') {
 
             /**
              * Validation Header {
