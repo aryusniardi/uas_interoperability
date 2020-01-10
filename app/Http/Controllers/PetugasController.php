@@ -3,6 +3,7 @@
 
     use App\Models\Petugas;
     use Illuminate\Http\Request;
+    use Illuminate\Support\Facades\Validator;
 
 class PetugasController extends Controller {
         
@@ -16,24 +17,47 @@ class PetugasController extends Controller {
 
         // Validasi hanya pplication/json atau application/xml yang valid
         if ($acceptHeader === 'application/json' || $acceptHeader === 'application/xml') {
-            $petugas = Petugas::OrderBy("petugas_id", "DESC")->paginate(10);
-            
+
+            /**
+             * Validation Header {
+             *  Accept : application/json
+             * }
+             */
             if ($acceptHeader === 'application/json') {
-                /** 
-                 * $response = [
-                 *   "total_count" => $petugas["total"],
-                 *   "limit" => $petugas["per_page"],
-                 *   "pagination" => [
-                 *       "next_page" => $petugas["next_page_url"],
-                 *       "current_page" => $petugas["current_page"]
-                 *      ],
-                 *      "data" => $petugas["data"],
-                 *];
-                 */
+                $petugas = Petugas::OrderBy("petugas_id", "DESC")->paginate(10)->toArray();
+
+                if (!$petugas) {
+                    abort(404);
+                }
+
+                $response = [
+                    "total_count" => $petugas["total"],
+                    "limit" => $petugas["per_page"],
+                    "pagination" => [
+                        "next_page" => $petugas["next_page_url"],
+                        "current_page" => $petugas["current_page"]
+                    ],
+                    "data" => $petugas["data"],
+                 ];
+                 
                 // Response json
-                return response()->json($petugas, 200);
-            } else {
+                return response()->json($response, 200);
+            } 
+
+            /**
+             * Validation Header {
+             *  Accept : application/xml
+             * }
+             */
+            else if ($acceptHeader === 'application/xml') {
+                $petugas = Petugas::OrderBy("petugas_id", "DESC")->paginate(10);
+
+                if (!$petugas) {
+                    abort(404);
+                }
+                
                 $xml = new \SimpleXMLElement('<Petugas/>');
+                //dd($petugas);
                 foreach ($petugas->items('data') as $item) {
                     $xmlItem = $xml->addChild('Petugas');
 
@@ -46,6 +70,8 @@ class PetugasController extends Controller {
                 }
 
                 return $xml->asXML();
+            } else {
+                return response('Unsupported Media Type', 403);
             }
         } else {
             return response('Not Acceptable!', 406);
@@ -64,6 +90,22 @@ class PetugasController extends Controller {
         // validasi: hanya application/json atau application/xml yang valid
         if ($acceptHeader === 'application/json' || $acceptHeader === 'application/xml') {
             $contentTypeHeader = $request->header('Content-Type');
+            $input = $request->all();
+
+            $validationRules = [
+                'email' => 'required|email|unique:petugas',
+                'password' => 'required|min:6|confirmed',
+                'role' => 'required'
+            ];
+
+            $validator = Validator::make($input, $validationRules);
+            
+            if ($validator->fails()) {
+                return response()->json($validator->errors(), 400);
+            }
+
+            $petugas = Petugas::create($input);
+
             /**
              * Validation Header {
              *  Accept : application/json
@@ -72,14 +114,12 @@ class PetugasController extends Controller {
              */
             if ($acceptHeader === 'application/json') {
                 if ($contentTypeHeader === 'application/json') {
-                    $input = $request->all();
-                    $petugas = Petugas::create($input);
-
                     return response()->json($petugas, 200);
                 } else {
                     return response('Unsupported Media Type', 403);
                 }
             } 
+            
             /**
              * Validation Header {
              *  Accept : application/xml
@@ -88,8 +128,6 @@ class PetugasController extends Controller {
              */
             else if ($acceptHeader === 'application/xml') {
                 if ($contentTypeHeader === 'application/json') {
-                    $input = $request->all();
-                    $petugas = Petugas::create($input);
 
                     $xml = new \SimpleXMLElement('<Petugas/>');
 
@@ -123,9 +161,26 @@ class PetugasController extends Controller {
         
         if ($acceptHeader === 'application/json' || $acceptHeader === 'application/xml') {
             $petugas = Petugas::find($id);
+
+            if (!$petugas) {
+                abort(404);
+            }
+            
+            /**
+             * Validation Header {
+             *  Accept : application/json
+             * }
+             */
             if ($acceptHeader === 'application/json') {
                 return response()->json($petugas, 200);
-            } else if ($acceptHeader === 'application/xml') {
+            } 
+            
+            /**
+             * Validation Header {
+             *  Accept : application/xml
+             * }
+             */
+            else if ($acceptHeader === 'application/xml') {
                 $xml = new \SimpleXMLElement('<Petugas/>');
 
                 $xml->addChild('petugas_id', $petugas->petugas_id);
@@ -151,28 +206,52 @@ class PetugasController extends Controller {
      */
     public function update(Request $request, $id) {
         $acceptHeader = $request->header('Accept');
-
         $input = $request->all();
-
         $petugas = Petugas::find($id);
-
-        if (!$petugas) {
-            abort(404);
-        }
 
         if ($acceptHeader === 'application/json' || $acceptHeader === 'application/xml') {
             $contentTypeHeader = $request->header('Content-Type');
 
+            $validationRules = [
+                'email' => 'required|email|unique:petugas',
+                'password' => 'required|min:6|confirmed',
+                'role' => 'required'
+            ];
+
+            $validator = Validator::make($input, $validationRules);
+
+            if ($validator->fails()) {
+                return response()->json($validator->errors(), 400);
+            }
+
+            if (!$petugas) {
+                abort(404);
+            }
+
             $petugas->fill($input);
             $petugas->save();
-
+            
+            /**
+             * Validation Header {
+             *  Accept : application/json
+             *  Content-Type : application/json
+             * }
+             */
             if ($acceptHeader === 'application/json') {
                 if ($contentTypeHeader === 'application/json') {
                     return response()->json($petugas, 200);
                 } else {
                     return ('Unsupported Media Type');
                 }
-            } else if ($acceptHeader === 'application/xml') {
+            } 
+            
+            /**
+             * Validation Header {
+             *  Accept : application/xml
+             *  Content-Type : application/json
+             * }
+             */
+            else if ($acceptHeader === 'application/xml') {
                 if ($contentTypeHeader === 'application/json') {
                    $xml = new \SimpleXMLElement('<Petugas/>');
 
@@ -203,6 +282,11 @@ class PetugasController extends Controller {
     {
         $acceptHeader = $request->header('Accept');
 
+        /**
+         * Validation Header {
+         *  Accept : application/json || application/xml
+         * }
+         */
         if ($acceptHeader === 'application/json' || $acceptHeader === 'application/xml') {
             $petugas = Petugas::find($id);
             
