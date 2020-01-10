@@ -7,5 +7,7 @@ class User extends Model {
 	protected $table = 'user';
 	protected $fillable = array('nik','nama','email','password');
 	public $timestamps = true;
+
+	
 }
 ?>
