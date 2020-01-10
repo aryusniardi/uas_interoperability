@@ -10,7 +10,7 @@
 
         protected $fillable = array ('user_id', 'jenis_saran', 'lokasi_sarab', 'isi_saran');
 
-        protected $timestamps = true;
+        public $timestamps = true;
 
         
         /* ----- Relationships ----- */

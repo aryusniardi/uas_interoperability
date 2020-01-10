@@ -15,8 +15,16 @@ $router->get('/', function () use ($router) {
     return $router->app->version();
 });
 
+// End-Point User
 $router->get('/user','UserController@index');
 $router->post('/user','UserController@store');
 $router->get('/user/{id}','UserController@show');
 $router->put('/user/{id}','UserController@update');
 $router->delete('user/{id}','UserController@destroy');
+
+// End-Point Petugas
+$router->get('/petugas', 'PetugasController@index');
+$router->post('/petugas', 'PetugasController@store');
+$router->get('/petugas/{id}', 'PetugasController@show');
+$router->put('/petugas/{id}', 'PetugasController@update');
+$router->delete('petugas/{id}', 'PetugasController@destroy');

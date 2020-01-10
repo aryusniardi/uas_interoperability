@@ -10,7 +10,7 @@
 
         protected $fillable = array ('keluhan_id', 'petugas_id', 'tanggapan', 'alasan');
 
-        protected $timestamps = true;
+        public $timestamps = true;
 
         /* ----- Relationships ----- */
         

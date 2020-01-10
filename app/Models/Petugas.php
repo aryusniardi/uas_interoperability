@@ -10,7 +10,7 @@
 
         protected $fillable = array ('email', 'password', 'role');
         
-        protected $timestamps = true;
+        public $timestamps = true;
 
         /* ----- Relationship ----- */
 
