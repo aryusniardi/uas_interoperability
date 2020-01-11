@@ -5,6 +5,7 @@
     use Illuminate\Http\Request;
     use Illuminate\Support\Facades\Validator;
     use Illuminate\Support\Facades\Auth;
+    use Illuminate\Support\Facades\Gate;
 
 class PetugasController extends Controller {
         
@@ -25,7 +26,19 @@ class PetugasController extends Controller {
              * }
              */
             if ($acceptHeader === 'application/json') {
-                $petugas = Petugas::OrderBy("petugas_id", "DESC")->paginate(10)->toArray();
+                if (Gate::denies('read-admin')) {
+                    return response()->json([
+                        'success' => false,
+                        'status' => 403,
+                        'message' => 'You are unauthorized'
+                    ], 403);
+                }
+
+                if (Auth::user()->role === 'super admin') {
+                    $petugas = Petugas::OrderBy("petugas_id", "DESC")->paginate(10)->toArray();
+                } else {
+                    $petugas = Petugas::Where(['petugas_id' => Auth::user()->petugas_id])->OrderBy("petugas_id", "DESC")->paginate(2)->toArray();
+                }
 
                 if (!$petugas) {
                     abort(404);

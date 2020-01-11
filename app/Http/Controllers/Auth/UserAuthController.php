@@ -3,12 +3,11 @@
 
     use App\Http\Controllers\Controller;
     use Illuminate\Http\Request;
-    use App\Models\Petugas;
+    use App\Models\User;
     use Illuminate\Support\Facades\Validator;
-    use Illuminate\Validation\Rule as Rule;
     use Illuminate\Support\Facades\Auth;
 
-class PetugasAuthController extends Controller {
+class UserAuthController extends Controller {
         /**
          * Store a new Petugas
          * 
@@ -18,18 +17,18 @@ class PetugasAuthController extends Controller {
         public function register(Request $request) {
             // Validation
             $this->validate($request, [
+                'nama' => 'required|string|min:5',
                 'email' => 'required|email|unique:petugas',
                 'password' => 'required|confirmed|min:6',
-                'role' => ['required',  Rule::in(['admin', 'super admin'])]
             ]);
 
             $input = $request->all();
 
             // Validation Starts
             $validationRules = [
+                'nama' => 'required|string|min:5',
                 'email' => 'required|email|unique:petugas',
                 'password' => 'required|confirmed|min:6',
-                'role' => ['required',  Rule::in(['admin', 'super admin'])]
             ];
 
             $validator = Validator::make($input, $validationRules);
@@ -40,15 +39,15 @@ class PetugasAuthController extends Controller {
             // Validation Ends
 
             // Create new Petugas
-            $petugas = new Petugas;
-            $petugas->email = $request->input('email');
+            $user = new User;
+            $user->nama = $request->input('nama');
+            $user->email = $request->input('email');
             $plainPassword = $request->input('password');
-            $petugas->password = app('hash')->make($plainPassword);
-            $petugas->role = $request->input('role');
+            $user->password = app('hash')->make($plainPassword);
 
-            $petugas->save();
+            $user->save();
 
-            return response()->json($petugas, 200);
+            return response()->json($user, 200);
         }
 
         /**
@@ -63,7 +62,7 @@ class PetugasAuthController extends Controller {
             // Validation Rules
             $validationRules = [
                 'email' => 'required|email',
-                'password' => 'required|min:6|string'  
+                'password' => 'required|string|min:6'  
             ];
 
             $validator = Validator::make($input, $validationRules);
@@ -81,8 +80,7 @@ class PetugasAuthController extends Controller {
             return response()->json([
                 'token' => $token,
                 'token_type' => 'bearier',
-                'expires_in' => Auth::factory('admin')->getTTL() * 60
+                'expires_in' => Auth::factory('user')->getTTL() * 60
             ], 200);
         }
     }
-?>

@@ -2,18 +2,29 @@
     return [
         'defaults' => [
             'guard' => 'api',
-            'passwords' => 'petugas'
+            'passwords' => 'user',
         ],
+        
         'guards' => [
             'api' => [
                 'driver' => 'jwt',
-                'provider' => 'petugas'
+                'provider' => 'user',
+                'hash' => false,
             ],
+            'admin' => [
+                'driver' => 'jwt',
+                'provider' => 'admin',
+            ]
         ],
+        
         'providers' => [
-            'petugas' => [
+            'user' => [
                 'driver' => 'eloquent',
-                'model' => \App\Models\Petugas::class
+                'model' => \App\Models\User::class,
+            ],
+            'admin' => [
+                'driver' => 'eloquent',
+                'model' => \App\Models\Petugas::class,
             ]
         ]
     ];

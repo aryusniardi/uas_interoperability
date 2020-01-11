@@ -23,11 +23,11 @@ class UserController extends Controller {
                 return response()->json($user->items('data'), 200);
             }
             else {
-                $xml = new \SimpleXMLElement('<user/>');
+                $xml = new \SimpleXMLElement('<User/>');
                 foreach ($user->items('data') as $item) {
                     $xmlItem = $xml->addChild('user');
 
-                    $xmlItem->addChild('id', $item->id);
+                    $xmlItem->addChild('user_id', $item->id);
                     $xmlItem->addChild('nik', $item->nik);
                     $xmlItem->addChild('nama', $item->nama);
                     $xmlItem->addChild('email', $item->email);

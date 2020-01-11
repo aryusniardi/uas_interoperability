@@ -13,16 +13,22 @@
 
         // Table name = petugas
         protected $primaryKey = 'petugas_id';
+
+        /**
+         * The attributes that are mass assignable.
+         *
+         * @var array
+         */
         protected $fillable = array ('email', 'password', 'role');
         public $timestamps = true;
 
         /**
-         * The attributes exclude from the model's json form.
+         * The attributes that should be hidden for arrays.
          * 
          * @var array
          */
         protected $hidden = [
-            'password'
+            'password', 'remember_token'
         ];
         
         /**
@@ -36,7 +42,7 @@
         }
 
         /**
-         * Return a key value array, containing any custom claims to be added to the JWT
+         * Return a key value array, containing any custom claims to be added to the JWT.
          * 
          * @return array
          */
@@ -48,7 +54,7 @@
         /**
          * Menghubungkan Model Petugas dengan Model Keluhan.
          */
-        public function posts () {
+        public function keluhan() {
             return $this->hasMany('App\Models\Keluhan');
         }
     }

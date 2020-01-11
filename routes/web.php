@@ -17,6 +17,14 @@ $router->get('/', function () use ($router) {
     return $router->app->version();
 });
 
+/**
+ * User Authentication
+ */
+Route::group(['prefix' => 'auth'], function () use ($router) {
+    $router->post('/user/register', 'Auth\\UserAuthController@register');
+    $router->post('/user/login', 'Auth\\UserAuthController@login');
+});
+
 // End-Point User
 $router->get('/user','UserController@index');
 $router->post('/user','UserController@store');
@@ -27,11 +35,13 @@ $router->delete('user/{id}','UserController@destroy');
 /**
  * Petugas Authentication
  */
- $router->group(['prefix' => 'auth'], function() use ($router) {
+ Route::group(['prefix' => 'auth'], function() use ($router) {
     $router->post('/petugas/register', 'Auth\\PetugasAuthController@register');
     $router->post('/petugas/login', 'Auth\\PetugasAuthController@login');
  });
 
+
+ 
 /**
  * Petugas with Authentication
  */
