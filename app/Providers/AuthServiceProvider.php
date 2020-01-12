@@ -38,17 +38,16 @@ class AuthServiceProvider extends ServiceProvider
          */
         
          // Petugas Policy
-         Gate::define('read-admin', function ($petugas) {
-             return $petugas->role == 'super admin' || $petugas->role == 'admin';
+         Gate::define('admin', function ($petugas) {
+            return $petugas->role == 'super admin' || $petugas->role == 'admin';
         });
-
-
         // Petugas Policy Ends
 
         $this->app['auth']->viaRequest('api', function ($request) {
-            if ($request->input('api_token')) {
+            return app('auth')->setRequest($request)->user();
+            /*if ($request->input('api_token')) {
                 return Petugas::where('api_token', $request->input('api_token'))->first();
-            }
+            }*/
         });
     }
 }

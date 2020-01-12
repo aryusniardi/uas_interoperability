@@ -39,8 +39,6 @@ $router->delete('user/{id}','UserController@destroy');
     $router->post('/petugas/register', 'Auth\\PetugasAuthController@register');
     $router->post('/petugas/login', 'Auth\\PetugasAuthController@login');
  });
-
-
  
 /**
  * Petugas with Authentication

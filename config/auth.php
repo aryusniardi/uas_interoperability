@@ -1,12 +1,11 @@
 <?php
     return [
         'defaults' => [
-            'guard' => 'api',
-            'passwords' => 'user',
+            'guard' => env('user', 'admin'),
         ],
         
         'guards' => [
-            'api' => [
+            'user' => [
                 'driver' => 'jwt',
                 'provider' => 'user',
                 'hash' => false,
