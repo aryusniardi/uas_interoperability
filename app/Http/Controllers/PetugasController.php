@@ -13,7 +13,6 @@ class PetugasController extends Controller {
      * @return \Illuminate\Http\Response
      */
      public function index(Request $request) {
-        // Authorization
         if (Gate::denies('admin')) {
             return response()->json([
                 'success' => false,
@@ -28,6 +27,11 @@ class PetugasController extends Controller {
         if ($acceptHeader === 'application/json' || $acceptHeader === 'application/xml') {
             if (Auth::user()->role === 'super admin') {
                 $petugas = Petugas::OrderBy("petugas_id", "DESC")->first()->paginate(2)->toArray();
+
+                if (!$petugas) {
+                    abort(404);
+                }
+
                 $response = [
                     "total_count" => $petugas["total"],
                     "limit" => $petugas["per_page"],
@@ -66,9 +70,32 @@ class PetugasController extends Controller {
                 }
             } else {
                 $petugas = Petugas::Where(['petugas_id' => Auth::user()->petugas_id])->OrderBy("petugas_id", "DESC")->paginate(1)->toArray();
-                return response()->json($petugas, 200);
+
+                if (!$petugas) {
+                    abort(404);
+                }
+
+                // Response Accept : 'application/json'
+                if ($acceptHeader === 'application/json') {
+                    return response()->json($petugas, 200);
+                } 
+                // Response Accept : 'application/xml
+                else {
+                    $xml = new \SimpleXMLElement('<Petugas/>');
+
+                    foreach ($petugas['data'] as $item) {
+                        $xml->addChild('petugas_id', $item['petugas_id']);
+                        $xml->addChild('role', $item['role']);
+                        $xml->addChild('email', $item['email']);
+                        $xml->addChild('created_at', $item['created_at']);
+                        $xml->addChild('updated_at', $item['updated_at']);
+                    }
+
+                    return $xml->asXML();
+                }
             }
-        } else {
+        } 
+        else {
             return response('Not Acceptable!', 406);
         }
      }
@@ -91,93 +118,32 @@ class PetugasController extends Controller {
         $acceptHeader = $request->header('Accept');
 
         if ($acceptHeader === 'application/json' || $acceptHeader === 'application/xml') {
-
-            if (Auth::user()->role === 'super admin') {
-                $petugas = Petugas::find($id)->OrderBy("petugas_id", "DESC")->paginate(1)->toArray();
+            if (Auth::user()->role === 'super admin' || $id == Auth::user()->petugas_id ) {
+                $petugas = Petugas::find($id);
 
                 if (!$petugas) {
                     abort(404);
                 }
                 
-                $response = [
-                    "total_count" => $petugas["total"],
-                    "limit" => $petugas["per_page"],
-                    "pagination" => [
-                        "next_page" => $petugas["next_page_url"],
-                        "current_page" => $petugas["current_page"]
-                    ],
-                    "data" => $petugas["data"]
-                ];
                 // Response Accept : 'application/json'
                 if ($acceptHeader === 'application/json') {
-                    return response()->json($response, 200);
+                    return response()->json($petugas, 200);
                 }
 
                 // Response Accept : 'application/xml'
                 else {
-                    $xml = new \SimpleXMLElement('<DataPetugas/>');
-                    $xml->addChild('total_count', $petugas['total']);
-                    $xml->addChild('limit', $petugas['per_page']);
-                    $pagination = $xml->addChild('pagination');
-                    $pagination->addChild('next_page', $petugas['next_page_url']);
-                    $pagination->addChild('current_page', $petugas['current_page']);
-                    $xml->addChild('total_count', $petugas['total']);
-
-                    foreach ($petugas['data'] as $item) {
-                        $xmlItem = $xml->addChild('petugas');
-
-                        $xmlItem->addChild('petugas_id', $item['petugas_id']);
-                        $xmlItem->addChild('role', $item['role']);
-                        $xmlItem->addChild('email', $item['email']);
-                        $xmlItem->addChild('created_at', $item['created_at']);
-                        $xmlItem->addChild('updated_at', $item['updated_at']);
-                    }
+                    $xml = new \SimpleXMLElement('<Petugas/>');
+                    
+                    $xml->addChild('petugas_id', $petugas->petugas_id);
+                    $xml->addChild('role', $petugas->role);
+                    $xml->addChild('email', $petugas->email);
+                    $xml->addChild('created_at', $petugas->created_at);
+                    $xml->addChild('updated_at', $petugas->updated_at);
 
                     return $xml->asXML();
                 }
             } else {
-                if ($id == Auth::user()->petugas_id) {
-                    $petugas = Petugas::find($id)->OrderBy("petugas_id", "DESC")->paginate(1)->toArray();
-
-                    $response = [
-                        "total_count" => $petugas["total"],
-                        "limit" => $petugas["per_page"],
-                        "pagination" => [
-                            "next_page" => $petugas["next_page_url"],
-                            "current_page" => $petugas["current_page"]
-                        ],
-                        "data" => $petugas["data"]
-                    ];
-                    // Response Accept : 'application/json'
-                    if ($acceptHeader === 'application/json') {
-                        return response()->json($response, 200);
-                    }
-
-                    // Response Accept : 'application/xml'
-                    else {
-                        $xml = new \SimpleXMLElement('<DataPetugas/>');
-                        $xml->addChild('total_count', $petugas['total']);
-                        $xml->addChild('limit', $petugas['per_page']);
-                        $pagination = $xml->addChild('pagination');
-                        $pagination->addChild('next_page', $petugas['next_page_url']);
-                        $pagination->addChild('current_page', $petugas['current_page']);
-                        $xml->addChild('total_count', $petugas['total']);
-
-                        foreach ($petugas['data'] as $item) {
-                            $xmlItem = $xml->addChild('petugas');
-
-                            $xmlItem->addChild('petugas_id', $item['petugas_id']);
-                            $xmlItem->addChild('role', $item['role']);
-                            $xmlItem->addChild('email', $item['email']);
-                            $xmlItem->addChild('created_at', $item['created_at']);
-                            $xmlItem->addChild('updated_at', $item['updated_at']);
-                        }
-
-                        return $xml->asXML();
-                    }
-                } else {
-                    return response('You are Unauthorized', 403);
-                }
+                return response('You are Unauthorized', 403);
             }
         } else {
             return response('Not Acceptable!', 406);
@@ -192,21 +158,65 @@ class PetugasController extends Controller {
      * @return \Illuminate\Http\Response
      */
     public function update(Request $request, $id) {
+        if (Gate::denies('admin')) {
+            return response()->json([
+                'success' => false,
+                'status' => 403,
+                'message' => 'You are Unauthorized'
+            ], 403);
+        }
+    
         $acceptHeader = $request->header('Accept');
         $contentTypeHeader = $request->header('Content-Type');
 
         $input = $request->all();
 
-        $petugas = Petugas::find($id);
-        
-        if (!$petugas) {
-            abort(404);
+        // Validation Rules
+        $validationRules = [
+            'email' => 'required|min:5|unique',
+            'password' => 'required|min:6',
+            'role' => 'required|in:super admin,admin',
+            'user_id' => $id
+        ];
+
+        $validator = Validator::make($input, $validationRules);
+
+        if ($validator->fails()) {
+            return response()->json($validator->errors(), 400);
         }
 
-        $petugas->fill($input);
-        $petugas->save();
+        if ($acceptHeader === 'application/json' || $acceptHeader === 'application/xml') {
+            if (Auth::user()->role === 'super admin' || $id == Auth::user()->petugas_id) {
+                $petugas = Petugas::find($id);
 
-        return response()->json($petugas, 200);
+                if (!$petugas) {
+                    abort(404);
+                }
+
+                $petugas->fill($input);
+                $petugas->save();
+
+                if ($contentTypeHeader === 'application/json' && $acceptHeader === 'application/json') {
+                    return response()->json($petugas, 200);
+                } else if ($contentTypeHeader === 'application/xml' && $acceptHeader === 'application/xml') {
+                    $xml = new \SimpleXMLElement('<Petugas/>');
+
+                    $xml->addChild('petugas_id', $petugas->petugas_id);
+                    $xml->addChild('role', $petugas->role);
+                    $xml->addChild('email', $petugas->email);
+                    $xml->addChild('created_at', $petugas->created_at);
+                    $xml->addChild('updated_at', $petugas->updated_at);
+
+                    return $xml->asXML();
+                } else {
+                    return response('Unsupported Media Type', 403);
+                }
+            } else {
+                return response('You are Unauthorized', 403);
+            }
+        } else {
+            return response('Not Acceptable!', 406);
+        }
     }
 
     /**
@@ -216,22 +226,44 @@ class PetugasController extends Controller {
      * @return \Illuminate\Http\Response
      */
     public function destroy(Request $request, $id) {
-        $acceptHeader = $request->header('Accept');
-        $contentTypeHeader = $request->header('Content-Type');
-        
-        $petugas = Petugas::find($id);
-
-        if (!$petugas) {
-            abort(404);
+        if (Gate::denies('admin')) {
+            return response()->json([
+                'success' => false,
+                'status' => 403,
+                'message' => 'You are Unauthorized'
+            ], 403);
         }
+        
+        $acceptHeader = $request->header('Accept');
 
-        $petugas->delete();
-        $response = [
-            'message' => 'Deleted Successfully!',
-            'petugas_id' => $id
-        ];
+        if ($acceptHeader === 'application/json' || $acceptHeader === 'application/xml') {
+            if (Auth::user()->role === 'super admin' || $id == Auth::user()->petugas_id) {
+                $petugas = Petugas::find($id);
 
-        return response()->json($response, 200);
+                if (!$petugas) {
+                    abort(404);
+                }
+
+                $petugas->delete();
+                $response = [
+                    'message' => 'Deleted Successfully!',
+                    'petugas_id' => $id
+                ];
+
+                if ($acceptHeader === 'application/json') {
+                    return response()->json($response, 200);
+                } else {
+                    $xml = new \SimpleXMLElement('<Petugas/>');
+
+                    $xml->addChild('message', 'Deleted Successfully!');
+                    $xml->addChild('petugas_id', $id);
+                }
+            } else {
+                return response('You are Unauthorized', 403);
+            }
+        } else {
+            return response('Not Acceptable!', 406);
+        }
     }
 }
 ?>

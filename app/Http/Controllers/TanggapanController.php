@@ -3,7 +3,6 @@
 
     use App\Models\Tanggapan;
     use App\Models\Petugas;
-    use App\Models\User;
     use Illuminate\Http\Request;
     use Illuminate\Support\Facades\Validator;
     use Illuminate\Support\Facades\Auth;
@@ -19,75 +18,52 @@ class TanggapanController extends Controller {
      public function index(Request $request) {
          $acceptHeader = $request->header('Accept');
 
-         // Validasi hanya pplication/json atau application/xml yang valid
          if ($acceptHeader === 'application/json' || $acceptHeader === 'application/xml') {
+            $tanggapan = Tanggapan::OrderBy("tanggapan_id", "DESC")->paginate(10)->toArray();
 
-            /**
-             * Validation Header {
-             *  Accept : application/json
-             * }
-             */
+            if (!$tanggapan) {
+                abort(404);
+            }
+
+            $response = [
+                "total_count" => $tanggapan["total"],
+                "limit" => $tanggapan["per_page"],
+                "pagination" => [
+                    "next_page" => $tanggapan["next_page_url"],
+                    "current_page" => $tanggapan["current_page"]
+                ],
+                "data" => $tanggapan["data"],
+            ];
+            
+            // Response Accept : 'application/json'
             if ($acceptHeader === 'application/json') {
-                if (Gate::denies('read-admin')) {
-                    return response()->json([
-                        'success' => false,
-                        'status' => 403,
-                        'message' => 'You are unauthorized'
-                    ], 403);
-                }
-
-                if (Auth::user()->role === 'super admin') {
-                    $petugas = Petugas::OrderBy("petugas_id", "DESC")->paginate(10)->toArray();
-                } else {
-                    $petugas = Petugas::Where(['petugas_id' => Auth::user()->petugas_id])->OrderBy("petugas_id", "DESC")->paginate(2)->toArray();
-                }
-
-                if (!$petugas) {
-                    abort(404);
-                }
-
-                $response = [
-                    "total_count" => $petugas["total"],
-                    "limit" => $petugas["per_page"],
-                    "pagination" => [
-                        "next_page" => $petugas["next_page_url"],
-                        "current_page" => $petugas["current_page"]
-                    ],
-                    "data" => $petugas["data"],
-                 ];
-                 
-                // Response json
                 return response()->json($response, 200);
             } 
+            
+            // Response Accept : 'application/xml'
+            else {
+                $xml = new \SimpleXMLElement('<Data_Tanggapan/>');
 
-            /**
-             * Validation Header {
-             *  Accept : application/xml
-             * }
-             */
-            else if ($acceptHeader === 'application/xml') {
-                $petugas = Petugas::OrderBy("petugas_id", "DESC")->paginate(10);
+                $xml->addChild('total_count', $tanggapan['total']);
+                $xml->addChild('limit', $tanggapan['per_page']);
+                $pagination = $xml->addChild('pagination');
+                $pagination->addChild('next_page', $tanggapan['next_page_url']);
+                $pagination->addChild('current_page', $tanggapan['current_page']);
+                $xml->addChild('total_count', $tanggapan['total']);
 
-                if (!$petugas) {
-                    abort(404);
-                }
-                
-                $xml = new \SimpleXMLElement('<Petugas/>');
-                //dd($petugas);
-                foreach ($petugas->items('data') as $item) {
-                    $xmlItem = $xml->addChild('Petugas');
+                foreach ($tanggapan['data'] as $item) {
+                    $xmlItem = $xml->addChild('petugas');
 
-                    $xmlItem->addChild('petugas_id', $item->petugas_id);
-                    $xmlItem->addChild('email', $item->email);
-                    $xmlItem->addChild('password', $item->password);
-                    $xmlItem->addChild('role', $item->role);
-                    $xmlItem->addChild('created_at', $item->created_at);
-                    $xmlItem->addChild('updated_at', $item->updated_at);
+                    $xmlItem->addChild('tanggapan_id', $item['tanggapan_id']);
+                    $xmlItem->addChild('keluhan_id', $item['keluhan_id']);
+                    $xmlItem->addChild('petugas_id', $item['petugas_id']);
+                    $xmlItem->addChild('tanggapan', $item['tanggapan']);
+                    $xmlItem->addChild('alasan', $item['alasan']);
+                    $xmlItem->addChild('created_at', $item['created_at']);
+                    $xmlItem->addChild('updated_at', $item['updated_at']);
                 }
 
                 return $xml->asXML();
-            } else {
-                return response('Unsupported Media Type', 403);
             }
         } else {
             return response('Not Acceptable!', 406);
@@ -101,65 +77,59 @@ class TanggapanController extends Controller {
      * @return \Illuminate\Http\Response
      */
     public function store(Request $request) {
+        if (Gate::denies('admin')) {
+            return response()->json([
+                'success' => false,
+                'status' => 403,
+                'message' => 'You are Unauthorized'
+            ], 403);
+        }
+
+        $input = $request->all();
+        
+        $validationRules = [
+            'keluhan_id' => 'required|exist:keluhan, keluhan_id',
+            'petugas_id' => Auth::user()->petugas_id,
+            'tanggapan' => 'required|in:diterima, ditolak',
+            'alasan' => 'required|min:24'
+        ];
+        
+        $validator = Validator::make($input, $validationRules);
+        
+        if ($validator->fails()) {
+            return response()->json($validator->errors(), 400);
+        }
+
         $acceptHeader = $request->header('Accept');
+        $contentTypeHeader = $request->header('Content-Type');
 
-        // validasi: hanya application/json atau application/xml yang valid
-        if ($acceptHeader === 'application/json' || $acceptHeader === 'application/xml') {
-            $contentTypeHeader = $request->header('Content-Type');
-            $input = $request->all();
+        $tanggapan = Tanggapan::create($input);
 
-            $validationRules = [
-                'email' => 'required|email|unique:petugas',
-                'password' => 'required|min:6|confirmed',
-                'role' => 'required'
-            ];
-
-            $validator = Validator::make($input, $validationRules);
-            
-            if ($validator->fails()) {
-                return response()->json($validator->errors(), 400);
-            }
-
-            $petugas = Petugas::create($input);
-
-            /**
-             * Validation Header {
-             *  Accept : application/json
-             *  Content-Type : application/json
-             * }
-             */
-            if ($acceptHeader === 'application/json') {
-                if ($contentTypeHeader === 'application/json') {
-                    return response()->json($petugas, 200);
+        if ($acceptHeader === 'application/json' || $contentTypeHeader === 'application/xml') {
+            if ($contentTypeHeader === 'application/json') {
+                if ($acceptHeader === 'application/json') {
+                    return response()->json($tanggapan, 200);
                 } else {
-                    return response('Unsupported Media Type', 403);
+                    return response('Not Acceptable!', 406);
                 }
-            } 
-            
-            /**
-             * Validation Header {
-             *  Accept : application/xml
-             *  Content-Type : application/json
-             * }
-             */
-            else if ($acceptHeader === 'application/xml') {
-                if ($contentTypeHeader === 'application/json') {
+            } else if ($contentTypeHeader === 'application/xml') {
+                if ($acceptHeader === 'application/xml') {
+                    $xml = new \SimpleXMLElement('<Tanggapan/>');
 
-                    $xml = new \SimpleXMLElement('<Petugas/>');
-
-                    $xml->addChild('petugas_id', $petugas->petugas_id);
-                    $xml->addChild('email', $petugas->email);
-                    $xml->addChild('password', $petugas->password);
-                    $xml->addChild('role', $petugas->role);
-                    $xml->addChild('created_at', $petugas->created_at);
-                    $xml->addChild('updated_at', $petugas->updated_at);
+                    $xml->addChild('tanggapan_id', $tanggapan->tanggapan_id);
+                    $xml->addChild('keluhan_id', $tanggapan->keluhan_id);
+                    $xml->addChild('petugas_id', $tanggapan->petugas_id);
+                    $xml->addChild('tanggapan', $tanggapan->tanggapan);
+                    $xml->addChild('alasan', $tanggapan->alasan);
+                    $xml->addChild('created_at', $tanggapan->created_at);
+                    $xml->addChild('updated_at', $tanggapan->updated_at);
 
                     return $xml->asXML();
                 } else {
-                    return response('Unsupported Media Type', 403);
+                    return response('Not Acceptable!', 406);
                 }
             } else {
-                return response('Unsupported Media Type', 403);
+                return response('You are Unauthorized', 403);
             }
         } else {
             return response('Not Acceptable!', 406);
@@ -176,35 +146,28 @@ class TanggapanController extends Controller {
         $acceptHeader = $request->header('Accept');
         
         if ($acceptHeader === 'application/json' || $acceptHeader === 'application/xml') {
-            $petugas = Petugas::find($id);
+            $tanggapan = Tanggapan::find($id);
 
-            if (!$petugas) {
+            if (!$tanggapan) {
                 abort(404);
             }
             
-            /**
-             * Validation Header {
-             *  Accept : application/json
-             * }
-             */
+            // Response Accept : 'application/json'
             if ($acceptHeader === 'application/json') {
-                return response()->json($petugas, 200);
+                return response()->json($tanggapan, 200);
             } 
             
-            /**
-             * Validation Header {
-             *  Accept : application/xml
-             * }
-             */
-            else if ($acceptHeader === 'application/xml') {
-                $xml = new \SimpleXMLElement('<Petugas/>');
+            // Response Accept : 'application/xml'
+            else {
+                $xml = new \SimpleXMLElement('<Tanggapan/>');
 
-                $xml->addChild('petugas_id', $petugas->petugas_id);
-                $xml->addChild('email', $petugas->email);
-                $xml->addChild('password', $petugas->password);
-                $xml->addChild('role', $petugas->role);
-                $xml->addChild('created_at', $petugas->created_at);
-                $xml->addChild('updated_at', $petugas->updated_at);
+                $xml->addChild('tanggapan_id', $tanggapan->tanggapan_id);
+                $xml->addChild('keluhan_id', $tanggapan->keluhan_id);
+                $xml->addChild('petugas_id', $tanggapan->petugas_id);
+                $xml->addChild('tanggapan', $tanggapan->tanggapan);
+                $xml->addChild('alasan', $tanggapan->alasan);
+                $xml->addChild('created_at', $tanggapan->created_at);
+                $xml->addChild('updated_at', $tanggapan->updated_at);
 
                 return $xml->asXML();
             }
@@ -221,68 +184,67 @@ class TanggapanController extends Controller {
      * @return \Illuminate\Http\Response
      */
     public function update(Request $request, $id) {
+        if (Gate::denies('admin')) {
+            return response()->json([
+                'success' => false,
+                'status' => 403,
+                'message' => 'You are Unauthorized'
+            ], 403);
+        }
+
         $acceptHeader = $request->header('Accept');
+        $contentTypeHeader = $request->header('Content-Type');
+
         $input = $request->all();
-        $petugas = Petugas::find($id);
 
+        $validationRules = [
+            'keluhan_id' => 'required|exist:keluhan, keluhan_id',
+            'petugas_id' => Auth::user()->petugas_id,
+            'tanggapan' => 'required|in:diterima, ditolak',
+            'alasan' => 'required|min:24'
+        ];
+
+        $validator = Validator::make($input, $validationRules);
+
+        if ($validator->fails()) {
+            return response()->json($validator->errors(), 400);
+        }
+        
         if ($acceptHeader === 'application/json' || $acceptHeader === 'application/xml') {
-            $contentTypeHeader = $request->header('Content-Type');
+            $tanggapan = Tanggapan::find($id);
 
-            $validationRules = [
-                'email' => 'required|email|unique:petugas',
-                'password' => 'required|min:6|confirmed',
-                'role' => 'required'
-            ];
-
-            $validator = Validator::make($input, $validationRules);
-
-            if ($validator->fails()) {
-                return response()->json($validator->errors(), 400);
-            }
-
-            if (!$petugas) {
+            if (!$tanggapan) {
                 abort(404);
             }
-
-            $petugas->fill($input);
-            $petugas->save();
             
-            /**
-             * Validation Header {
-             *  Accept : application/json
-             *  Content-Type : application/json
-             * }
-             */
+            $tanggapan->fill($input);
+            $tanggapan->save();
+
             if ($acceptHeader === 'application/json') {
                 if ($contentTypeHeader === 'application/json') {
-                    return response()->json($petugas, 200);
+                    return response()->json($tanggapan, 200);
                 } else {
-                    return ('Unsupported Media Type');
+                    return response('Unsupported Media Type', 403);
                 }
-            } 
-            
-            /**
-             * Validation Header {
-             *  Accept : application/xml
-             *  Content-Type : application/json
-             * }
-             */
-            else if ($acceptHeader === 'application/xml') {
-                if ($contentTypeHeader === 'application/json') {
-                   $xml = new \SimpleXMLElement('<Petugas/>');
+            } else if ($acceptHeader === 'application/xml') {
+                if ($contentTypeHeader === 'application/xml') {
+                    $xml = new \SimpleXMLElement('<Tanggapan/>');
 
-                    $xml->addChild('petugas_id', $petugas->petugas_id);
-                    $xml->addChild('email', $petugas->email);
-                    $xml->addChild('password', $petugas->password);
-                    $xml->addChild('role', $petugas->role);
-                    $xml->addChild('created_at', $petugas->created_at);
-                    $xml->addChild('updated_at', $petugas->updated_at);
+                    $xml->addChild('tanggapan_id', $tanggapan->tanggapan_id);
+                    $xml->addChild('keluhan_id', $tanggapan->keluhan_id);
+                    $xml->addChild('petugas_id', $tanggapan->petugas_id);
+                    $xml->addChild('tanggapan', $tanggapan->tanggapan);
+                    $xml->addChild('alasan', $tanggapan->alasan);
+                    $xml->addChild('created_at', $tanggapan->created_at);
+                    $xml->addChild('updated_at', $tanggapan->updated_at);
 
                     return $xml->asXML();
                 } else {
                     return response('Unsupported Media Type', 403);
                 }
-            }
+            } else {
+                return response('Not Acceptable!', 406);
+            }         
         } else {
             return response('Not Acceptable!', 406);
         }
@@ -296,27 +258,43 @@ class TanggapanController extends Controller {
      */
     public function destroy(Request $request, $id)
     {
+        if (Gate::denies('admin')) {
+            return response()->json([
+                'success' => false,
+                'status' => 403,
+                'message' => 'You are Unauthorized'
+            ], 403);
+        }
+
         $acceptHeader = $request->header('Accept');
 
-        /**
-         * Validation Header {
-         *  Accept : application/json || application/xml
-         * }
-         */
         if ($acceptHeader === 'application/json' || $acceptHeader === 'application/xml') {
-            $petugas = Petugas::find($id);
-            
-            if (!$petugas) {
+            $tanggapan = Tanggapan::find($id);
+
+            if (!$tanggapan) {
                 abort(404);
             }
-            
-            $petugas->delete();
-            $message = [
-                'message' => 'deleted successfully', 
-                'post_id' => $id
+
+            $tanggapan->delete();
+            $response = [
+                'message' => 'Deleted Successfully!',
+                'petugas_id' => $id
             ];
-            
-            return response()->json($message, 200);
+
+            // Response Accept : 'application/json'
+            if ($acceptHeader === 'application/json') {
+                return response()->json($response, 200);
+            } 
+                
+            // Response Accept : 'application/xml'
+            else {
+                $xml = new \SimpleXMLElement('<Petugas/>');
+
+                $xml->addChild('message', 'Deleted Successfully!');
+                $xml->addChild('petugas_id', $id);
+            }
+        } else {
+            return response('Not Acceptable!', 406);
         }
     }
 }
