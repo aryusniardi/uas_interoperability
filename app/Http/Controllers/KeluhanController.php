@@ -43,7 +43,7 @@ class KeluhanController extends Controller {
 
                 return response()->json($keluhan, 200);*/
                 $keluhan = new Keluhan;
-                $keluhan->user_id = Auth::user()->petugas_id;
+                $keluhan->user_id = Auth::user()->user_id;
                 $keluhan->jenis_keluhan = $request->input('jenis_keluhan');
                 $keluhan->lokasi_keluhan = $request->input('lokasi_keluhan');
                 $keluhan->foto_keluhan = $request->input('foto_keluhan');
