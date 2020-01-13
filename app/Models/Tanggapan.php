@@ -7,7 +7,7 @@
         // Table name : tanggapan
 
         protected $primaryKey = 'tanggapan_id';
-
+        protected $table = 'tanggapan';
         protected $fillable = array ('keluhan_id', 'petugas_id', 'tanggapan', 'alasan');
 
         public $timestamps = true;

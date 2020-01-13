@@ -17,7 +17,7 @@ class UserController extends Controller {
 		$acceptHeader = $request->header('Accept');
 
 		if ($acceptHeader === 'application/json' || $acceptHeader === 'application/xml') {
-			$user = User::OrderBy("id","DESC")->paginate(2);
+			$user = User::OrderBy("user_id","DESC")->paginate(2);
 			if ($acceptHeader === 'application/json') {
                 // response json
                 return response()->json($user->items('data'), 200);
@@ -27,7 +27,7 @@ class UserController extends Controller {
                 foreach ($user->items('data') as $item) {
                     $xmlItem = $xml->addChild('user');
 
-                    $xmlItem->addChild('user_id', $item->id);
+                    $xmlItem->addChild('user_id', $item->user_id);
                     $xmlItem->addChild('nik', $item->nik);
                     $xmlItem->addChild('nama', $item->nama);
                     $xmlItem->addChild('email', $item->email);
@@ -76,7 +76,7 @@ class UserController extends Controller {
 				// Create XML User Element
 				$xml = new \SimpleXMLElement('<User/>');
 				// Changing every field user to XML Format
-				$xml->AddChild('id', $user->id);
+				$xml->AddChild('user_id', $user->user_id);
 				$xml->AddChild('nik', $user->nik);
 				$xml->AddChild('nama', $user->nama);
 				$xml->AddChild('email', $user->email);
@@ -111,7 +111,7 @@ class UserController extends Controller {
 			// Response XML
 			$xml = new \SimpleXMLElement('<post/>');
 
-			$xml->addChild('id', $user->id);
+			$xml->addChild('user_id', $user->user_id);
 			$xml->AddChild('nik', $user->nik);
 			$xml->AddChild('nama', $user->nama);
 			$xml->AddChild('email', $user->email);
@@ -166,7 +166,7 @@ class UserController extends Controller {
 				$xml = new \SimpleXMLElement('<User/>');
 				// Changing every field User to XML Format
 
-				$xml->addChild('id', $user->id);
+				$xml->addChild('user_id', $user->user_id);
 				$xml->AddChild('nik', $user->nik);
 				$xml->AddChild('nama', $user->nama);
 				$xml->AddChild('email', $user->email);

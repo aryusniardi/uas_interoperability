@@ -18,7 +18,7 @@ $router->get('/', function () use ($router) {
 });
 
 /**
- * User Authentication
+ * User Authentication User
  */
 Route::group(['prefix' => 'auth'], function () use ($router) {
     $router->post('/user/register', 'Auth\\UserAuthController@register');
@@ -37,33 +37,33 @@ Route::group(['prefix' => 'auth'], function () use ($router) {
 });
 
 // End-Point User
-$router->get('/user','UserController@index');
-$router->post('/user','UserController@store');
-$router->get('/user/{id}','UserController@show');
-$router->put('/user/{id}','UserController@update');
-$router->delete('user/{id}','UserController@destroy');
+    $router->get('/user','UserController@index');
+    $router->post('/user','UserController@store');
+    $router->get('/user/{id}','UserController@show');
+    $router->put('/user/{id}','UserController@update');
+    $router->delete('user/{id}','UserController@destroy');
 
-/**
- * Petugas Authentication
- */
- Route::group(['prefix' => 'auth'], function() use ($router) {
+//Authentication Petugas
+Route::group(['prefix' => 'auth'], function() use ($router) {
     $router->post('/petugas/register', 'Auth\\PetugasAuthController@register');
     $router->post('/petugas/login', 'Auth\\PetugasAuthController@login');
- });
+});
  
-/**
- * Petugas with Authentication
- */
+//Petugas with Authentication, Authorization
 Route::group(['middleware' => ['auth']], function ($router) {
+    // Petugas End-Point
     $router->get('/petugas', 'PetugasController@index');
-    $router->post('/petugas', 'PetugasController@store');
     $router->get('/petugas/{id}', 'PetugasController@show');
     $router->put('/petugas/{id}', 'PetugasController@update');
     $router->delete('petugas/{id}', 'PetugasController@destroy');
-    //user
+
+    // Keluhan End-Point
+    $router->post('/tanggapan', 'TanggapanController@store');
+    $router->get('/tanggapan/{id}', 'TanggapanController@show');
+    $router->put('/tanggapan/{id}', 'TanggapanController@update');
+    $router->delete('tanggapan/{id}', 'TanggapanController@destroy');
     
 });
 
-/**
- * User with Authentication
- */
+// Public Route
+$router->get('/tanggapan', 'TanggapanController@index');

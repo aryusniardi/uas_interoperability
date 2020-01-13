@@ -25,7 +25,7 @@ class PetugasController extends Controller {
         
         // Validating Header : 'Accept'
         if ($acceptHeader === 'application/json' || $acceptHeader === 'application/xml') {
-            if (Auth::user()->role === 'super admin') {
+            if (Auth::guard('admin')->user()->role === 'super admin') {
                 $petugas = Petugas::OrderBy("petugas_id", "DESC")->first()->paginate(2)->toArray();
 
                 if (!$petugas) {
@@ -69,7 +69,7 @@ class PetugasController extends Controller {
                     return $xml->asXML();
                 }
             } else {
-                $petugas = Petugas::Where(['petugas_id' => Auth::user()->petugas_id])->OrderBy("petugas_id", "DESC")->paginate(1)->toArray();
+                $petugas = Petugas::Where(['petugas_id' => Auth::guard('admin')->user()->petugas_id])->OrderBy("petugas_id", "DESC")->paginate(1)->toArray();
 
                 if (!$petugas) {
                     abort(404);
@@ -118,7 +118,7 @@ class PetugasController extends Controller {
         $acceptHeader = $request->header('Accept');
 
         if ($acceptHeader === 'application/json' || $acceptHeader === 'application/xml') {
-            if (Auth::user()->role === 'super admin' || $id == Auth::user()->petugas_id ) {
+            if (Auth::guard('admin')->user()->role === 'super admin' || $id == Auth::guard('admin')->user()->petugas_id ) {
                 $petugas = Petugas::find($id);
 
                 if (!$petugas) {
@@ -186,7 +186,7 @@ class PetugasController extends Controller {
         }
 
         if ($acceptHeader === 'application/json' || $acceptHeader === 'application/xml') {
-            if (Auth::user()->role === 'super admin' || $id == Auth::user()->petugas_id) {
+            if (Auth::guard('admin')->user()->role === 'super admin' || $id == Auth::guard('admin')->user()->petugas_id) {
                 $petugas = Petugas::find($id);
 
                 if (!$petugas) {
@@ -237,7 +237,7 @@ class PetugasController extends Controller {
         $acceptHeader = $request->header('Accept');
 
         if ($acceptHeader === 'application/json' || $acceptHeader === 'application/xml') {
-            if (Auth::user()->role === 'super admin' || $id == Auth::user()->petugas_id) {
+            if (Auth::guard('admin')->user()->role === 'super admin' || $id == Auth::guard('admin')->user()->petugas_id) {
                 $petugas = Petugas::find($id);
 
                 if (!$petugas) {
