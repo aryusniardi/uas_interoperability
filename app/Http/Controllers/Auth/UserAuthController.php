@@ -56,31 +56,32 @@ class UserAuthController extends Controller {
          * @param Request $request
          * @return Response
          */
-        public function login(Request $request) {
-            $input = $request->all();
+        public function login(Request $request){
+        $input = $request->all();
 
-            // Validation Rules
-            $validationRules = [
-                'email' => 'required|email',
-                'password' => 'required|string|min:6'  
-            ];
+        $validationRules = [
+            'email' => 'required|string',
+            'password' => 'required|string',
+        ];
 
-            $validator = Validator::make($input, $validationRules);
+        $validator = \Validator::make($input, $validationRules);
 
-            if ($validator->fails()) {
-                return response()->json($validator->errors(), 400);
-            }
-
-            // Login Process
-            $credentials = $request->only(['email', 'password']);
-            if (!$token = Auth::attempt($credentials)) {
-                return response()->json(['message' => 'Unauthorized'], 401);
-            }
-
-            return response()->json([
-                'token' => $token,
-                'token_type' => 'bearier',
-                'expires_in' => Auth::factory('user')->getTTL() * 60
-            ], 200);
+        if ($validator->fails()) {
+            # code...
+            return response()->json($validator->errors(),400);
         }
+
+        $credentials = $request->only(['email','password']);
+
+        if (! $token = Auth::attempt($credentials)) {
+            # code...
+            return response()->json(['message' => 'Unauthorized'], 401);
+        }
+
+        return response()->json([
+            'token' => $token,
+            'token_type' => 'bearer',
+            'expires_in' => Auth::factory()->getTTL()*60
+        ],200);
+     }
     }

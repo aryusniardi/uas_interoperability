@@ -12,7 +12,7 @@
         use Authenticatable, Authorizable;
 
         // Table name = petugas
-        protected $guard = 'user';
+        protected $guard = 'petugas';
         protected $primaryKey = 'petugas_id';
 
         /**

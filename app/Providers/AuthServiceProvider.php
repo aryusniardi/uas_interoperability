@@ -2,10 +2,11 @@
 
 namespace App\Providers;
 
-use App\User;
+//use App\User;
 use App\Models\Petugas;
 use App\Models\Keluhan;
 use App\Models\Saran;
+use App\Models\User;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 
@@ -42,6 +43,7 @@ class AuthServiceProvider extends ServiceProvider
             return $petugas->role == 'super admin' || $petugas->role == 'admin';
         });
         // Petugas Policy Ends
+
 
         $this->app['auth']->viaRequest('api', function ($request) {
             return app('auth')->setRequest($request)->user();

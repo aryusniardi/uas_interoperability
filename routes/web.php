@@ -23,6 +23,7 @@ $router->get('/', function () use ($router) {
 Route::group(['prefix' => 'auth'], function () use ($router) {
     $router->post('/user/register', 'Auth\\UserAuthController@register');
     $router->post('/user/login', 'Auth\\UserAuthController@login');
+    $router->post('/user/keluhan', 'KeluhanController@store');
 });
 
 // End-Point User
@@ -49,4 +50,10 @@ Route::group(['middleware' => ['auth']], function ($router) {
     $router->get('/petugas/{id}', 'PetugasController@show');
     $router->put('/petugas/{id}', 'PetugasController@update');
     $router->delete('petugas/{id}', 'PetugasController@destroy');
+    //user
+    
 });
+
+/**
+ * User with Authentication
+ */
