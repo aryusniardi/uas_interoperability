@@ -74,7 +74,7 @@ class PetugasAuthController extends Controller {
 
             // Login Process
             $credentials = $request->only(['email', 'password']);
-            if (!$token = Auth::attempt($credentials)) {
+            if (!$token = Auth::guard('admin')->attempt($credentials)) {
                 return response()->json(['message' => 'Unauthorized'], 401);
             }
 

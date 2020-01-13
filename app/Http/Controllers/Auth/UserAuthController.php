@@ -64,7 +64,7 @@ class UserAuthController extends Controller {
             'password' => 'required|string',
         ];
 
-        $validator = \Validator::make($input, $validationRules);
+        $validator = Validator::make($input, $validationRules);
 
         if ($validator->fails()) {
             # code...
@@ -72,8 +72,7 @@ class UserAuthController extends Controller {
         }
 
         $credentials = $request->only(['email','password']);
-
-        if (! $token = Auth::attempt($credentials)) {
+        if (! $token = Auth::guard('user')->attempt($credentials)) {
             # code...
             return response()->json(['message' => 'Unauthorized'], 401);
         }
@@ -81,7 +80,7 @@ class UserAuthController extends Controller {
         return response()->json([
             'token' => $token,
             'token_type' => 'bearer',
-            'expires_in' => Auth::factory()->getTTL()*60
+            'expires_in' => Auth::factory('user')->getTTL()*60
         ],200);
      }
     }
