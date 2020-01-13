@@ -23,7 +23,17 @@ $router->get('/', function () use ($router) {
 Route::group(['prefix' => 'auth'], function () use ($router) {
     $router->post('/user/register', 'Auth\\UserAuthController@register');
     $router->post('/user/login', 'Auth\\UserAuthController@login');
+    //User Keluhan
     $router->post('/user/keluhan', 'KeluhanController@store');
+    $router->get('/user/keluhan', 'KeluhanController@index');
+    $router->get('/user/keluhan/{id}', 'KeluhanController@show');
+    $router->delete('/user/keluhan/{id}', 'KeluhanController@destroy');
+
+    //User Saran
+    $router->post('/user/saran', 'SaranController@store');
+    $router->get('/user/saran', 'SaranController@index');
+    $router->get('/user/saran/{id}', 'SaranController@show');
+    $router->delete('/user/saran/{id}', 'SaranController@destroy');
 });
 
 // End-Point User

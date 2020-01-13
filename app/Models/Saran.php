@@ -6,9 +6,10 @@
     class Saran extends Model {
         // Table name : saran
 
+        protected $table = 'saran';
         protected $primaryKey = 'saran_id';
 
-        protected $fillable = array ('user_id', 'jenis_saran', 'lokasi_sarab', 'isi_saran');
+        protected $fillable = array ('user_id', 'jenis_saran', 'lokasi_saran', 'isi_saran');
 
         public $timestamps = true;
 
