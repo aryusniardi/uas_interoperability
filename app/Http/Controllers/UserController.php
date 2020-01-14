@@ -4,7 +4,9 @@ namespace App\Http\Controllers;
 use App\Models\User;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
-use SimpleXMLElement;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Gate;
+
 
 class UserController extends Controller {
 	/**
@@ -16,80 +18,39 @@ class UserController extends Controller {
 	public function index(Request $request){
 		$acceptHeader = $request->header('Accept');
 
-		if ($acceptHeader === 'application/json' || $acceptHeader === 'application/xml') {
+		if (Gate::allows('admin')) {
 			$user = User::OrderBy("user_id","DESC")->paginate(2);
+		} else {
+			$user = User::find(Auth::guard('user')->user()->user_id);
+		}
+		
+		if ($acceptHeader === 'application/json' || $acceptHeader === 'application/xml') {
+			// Response Accept : 'application/json'
 			if ($acceptHeader === 'application/json') {
-                // response json
                 return response()->json($user->items('data'), 200);
             }
-            else {
-                $xml = new \SimpleXMLElement('<User/>');
+			
+			// Response Accept : 'application/xml'
+			else {
+				$xml = new \SimpleXMLElement('<Users/>');
+				
                 foreach ($user->items('data') as $item) {
                     $xmlItem = $xml->addChild('user');
 
-                    $xmlItem->addChild('user_id', $item->user_id);
+					$xmlItem->addChild('user_id', $item->user_id);
                     $xmlItem->addChild('nik', $item->nik);
                     $xmlItem->addChild('nama', $item->nama);
                     $xmlItem->addChild('email', $item->email);
                     $xmlItem->addChild('password', $item->password);
                     $xmlItem->addChild('created_at', $item->created_at);
                     $xmlItem->addChild('updated_at', $item->updated_at);
-                }
+				}
+				
                 return $xml->asXML();
             }
 		}
 		else {
 			return response('not acceptable!', 406);
-		}
-	}
-
-	/**
-	* Store a newly created resource in storage
-	* 
-	* @param \Illuminate\Http\Request $request
-	* @return \Illuminate\Http\Response
-	*/
-	public function store(Request $request){
-		$acceptHeader = $request->header('accept');
-		// Hanya memvalidasi application/json atau application/xml
-		if ($acceptHeader === 'application/json') {
-			$contentTypeHeader = $request->header('Content-Type');
-			// Hanya application/json yang valid
-			if ($contentTypeHeader === 'application/json') {
-				$input = $request->all();
-				
-				$user = User::create($input);
-
-				return response()->json($user, 200);
-			} else {
-				return response('Unsupported Media Type', 403);
-			}
-		} else if ($acceptHeader === 'application/xml') {
-			$contentTypeHeader = $request->header('Content-Type');
-			// Hanya application/xml yang valid
-			if ($contentTypeHeader === 'application/xml') {
-				$input = $request->all();
-
-				$user = User::create($input);
-
-				// Response XML
-				// Create XML User Element
-				$xml = new \SimpleXMLElement('<User/>');
-				// Changing every field user to XML Format
-				$xml->AddChild('user_id', $user->user_id);
-				$xml->AddChild('nik', $user->nik);
-				$xml->AddChild('nama', $user->nama);
-				$xml->AddChild('email', $user->email);
-				$xml->AddChild('password', $user->password);
-				$xml->AddChild('created_at', $user->created_at);
-				$xml->AddChild('updated_at', $user->updated_at);
-				
-				return $xml->asXML();
-			} else {
-				return response('Unsupported Media Type', 403);
-			}
-		} else {
-			return response('Not Acceptable!', 406);
 		}
 	}
 
@@ -102,24 +63,32 @@ class UserController extends Controller {
 	public function show(Request $request, $id){
 		$acceptHeader = $request->header('Accept');
 
-		// Validasi hanya application/json atau application/xml
-		$user = User::Find($id);
-		if ($acceptHeader === 'application/json') {
-			// Response JSON
-			return response()->json($user, 200);			
-		} else if ($acceptHeader === 'application/xml') {
-			// Response XML
-			$xml = new \SimpleXMLElement('<post/>');
-
-			$xml->addChild('user_id', $user->user_id);
-			$xml->AddChild('nik', $user->nik);
-			$xml->AddChild('nama', $user->nama);
-			$xml->AddChild('email', $user->email);
-			$xml->AddChild('password', $user->password);
-			$xml->AddChild('created_at', $user->created_at);
-			$xml->AddChild('updated_at', $user->updated_at);
-
-            return $xml->asXML();
+		if (Gate::allows('admin')) {
+			$user = User::find($id);
+		} else {
+			$user = User::find(Auth::guard('user')->user()->user_id);
+		}
+		
+		if ($acceptHeader === 'application/json' || $acceptHeader === 'application/xml') {
+			// Response Accept : 'application/json'
+			if ($acceptHeader === 'application/json') {
+				return response()->json($user, 200);			
+			} 
+			
+			// Response Accept : 'application/xml'
+			else {
+				$xml = new \SimpleXMLElement('<User/>');
+	
+				$xml->addChild('user_id', $user->user_id);
+				$xml->AddChild('nik', $user->nik);
+				$xml->AddChild('nama', $user->nama);
+				$xml->AddChild('email', $user->email);
+				$xml->AddChild('password', $user->password);
+				$xml->AddChild('created_at', $user->created_at);
+				$xml->AddChild('updated_at', $user->updated_at);
+	
+				return $xml->asXML();
+			} 
 		} else {
 			return response('Not Acceptable!', 406);
 		}
@@ -134,47 +103,59 @@ class UserController extends Controller {
 	*/
 	public function update(Request $request, $id){
 		$acceptHeader = $request->hedaer('Accept');
-		$input = $request->all();
+		$contentTypeHeader = $request->header('Content-Type');
 
-		$user = User::find($id);
-
-		if (!$user) {
-			abort(404);
+		if (Gate::denies('admin')) {
+			return response()->json([
+				'success' => false,
+				'status' => 403,
+				'message' => 'You are Unauthorized'
+			], 403);
 		}
 
-		// Validasi hanya application/json atau application/xml
-		if ($acceptHeader === 'application/json') {
-			// Hanya memvalidasi application/json
-			$contentTypeHeader = $request->header('Content-Type');
-			if ($contentTypeHeader === 'application/json') {
-				$user->fill($input);
-				$user->save();
+		$input = $request->all();
+
+		// Validation Rules
+
+		if ($acceptHeader === 'application/json' || $acceptHeader === 'application/xml') {
+			if ($contentTypeHeader === 'application/json' || $contentTypeHeader === 'application/xml') {
+				$user = User::find($id);
 		
-				return response()->json($user,200);
-			} else {
-				return response('Unsupported Media Type', 403);
-			}
-		} else if ($acceptHeader === 'application/xml') {
-			// Hanya memvalidasi applicaion/xml
-			$contentTypeHeader = $request->header('Content-Type');
-			if ($contentTypeHeader === 'application/json') {
-				$input = $request->all();
+				if (!$user) {
+					abort(404);
+				}
 
-				$user->fill($input);
-				$user->save();
+				if (Auth::guard('user')->user()->user_id === $id) {
+					$user->fill($input);
 
-				$xml = new \SimpleXMLElement('<User/>');
-				// Changing every field User to XML Format
+					// Response Accept & Content-Type : 'application/json'
+					if ($acceptHeader === 'application/json' && $contentTypeHeader === 'application/json') {
+						$user->save();
 
-				$xml->addChild('user_id', $user->user_id);
-				$xml->AddChild('nik', $user->nik);
-				$xml->AddChild('nama', $user->nama);
-				$xml->AddChild('email', $user->email);
-				$xml->AddChild('password', $user->password);
-				$xml->AddChild('created_at', $user->created_at);
-				$xml->AddChild('updated_at', $user->updated_at);
+						return response()->json($user,200);
+					} 
 
-				return $xml->asXML();
+					// Response Accept & Content-Type : 'application/xml'
+					else if ($acceptHeader === 'application/xml' && $contentTypeHeader === 'application/xml') {
+						$user->save();
+
+						$xml = new \SimpleXMLElement('<User/>');
+
+						$xml->addChild('user_id', $user->user_id);
+						$xml->AddChild('nik', $user->nik);
+						$xml->AddChild('nama', $user->nama);
+						$xml->AddChild('email', $user->email);
+						$xml->AddChild('password', $user->password);
+						$xml->AddChild('created_at', $user->created_at);
+						$xml->AddChild('updated_at', $user->updated_at);
+
+						return $xml->asXML();
+					} else {
+						return response('Unsupported Media Type', 403);
+					}
+				} else {
+					return response('You are Unauthorized!', 403);
+				}
 			} else {
 				return response('Unsupported Media Type', 403);
 			}
@@ -190,15 +171,51 @@ class UserController extends Controller {
 	* @return \Illuminate\Http\Response
 	*/
 	public function destroy(Request $request, $id){
-		$user = User::find($id);
+		$acceptHeader = $request->header('Accept');
 
-		if (!$user) {
-			abort(404);
+		if (Gate::allows('admin')) {
+			return response()->json([
+				'success' => false,
+				'status' => 403,
+				'message' => 'You are Unauthorized'
+			], 403);
 		}
-		$user->delete();
-		$message = ['message' => 'berhasil dihapus', 'id' => $id];
 
-		return response()->json($message,200);
+		if ($acceptHeader === 'aoolication/json' || $acceptHeader === 'application/xml') {
+			$user = User::find($id);
+
+			if (!$user) {
+				abort(404);
+			}	
+
+			if (Auth::guard('user')->user()->user_id === $id) {
+				$user->delete();
+
+				$response = [
+					'message' => 'Deleted Successfully!',
+					'user_id' => $id
+				];
+
+				// Response Accept : 'application/json'
+				if ($acceptHeader === 'application/json') {
+					return response()->json($response, 200);
+				} 
+				
+				// Response Accept : 'application/xml'
+				else {
+					$xml = new \SimpleXMLElement('<Petugas/>');
+
+					$xml->addChild('message', 'Deleted Successfully!');
+					$xml->addChild('petugas_id', $id);
+
+					return $xml->asXML();
+				}
+			} else {
+				return response('You are unauthorized', 403);
+			}
+		} else {
+			return response('Not Acceptable!', 406);
+		}
 	}
 }
 ?>

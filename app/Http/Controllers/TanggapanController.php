@@ -17,6 +17,7 @@ class TanggapanController extends Controller {
      */
      public function index(Request $request) {
          $acceptHeader = $request->header('Accept');
+
          if ($acceptHeader === 'application/json' || $acceptHeader === 'application/xml') {
             $tanggapan = Tanggapan::OrderBy("tanggapan_id", "DESC")->paginate(10)->toArray();
             
@@ -59,6 +60,7 @@ class TanggapanController extends Controller {
                     $xmlItem->addChild('keluhan_id', $item['keluhan_id']);
                     $xmlItem->addChild('petugas_id', $item['petugas_id']);
                     $tanggapanItem = $xmlItem->addChild('tanggapan');
+                    $tanggapanItem->addChild($item['isi']);
                     $tanggapanItem->addChild($item['tanggapan']);
                     $xmlItem->addChild('alasan', $item['alasan']);
                     $xmlItem->addChild('created_at', $item['created_at']);
@@ -79,6 +81,9 @@ class TanggapanController extends Controller {
      * @return \Illuminate\Http\Response
      */
     public function store(Request $request) {
+        $acceptHeader = $request->header('Accept');
+        $contentTypeHeader = $request->header('Content-Type');
+
         if (Gate::denies('admin')) {
             return response()->json([
                 'success' => false,
@@ -101,43 +106,54 @@ class TanggapanController extends Controller {
             return response()->json($validator->errors(), 400);
         }
 
-        $acceptHeader = $request->header('Accept');
-        $contentTypeHeader = $request->header('Content-Type');
-
         $tanggapan = new Tanggapan;
-        $tanggapan->petugas_id = Auth::guard('admin')->user()->petugas_id;
         $tanggapan->keluhan_id = $request->input('keluhan_id');
+        $tanggapan->petugas_id = Auth::guard('admin')->user()->petugas_id;
+        $keluhan = keluhan::find($request->input('keluhan_id'));
+        $tanggapan->isi = $keluhan->isi_keluhan;
         $tanggapan->tanggapan = $request->input('tanggapan');
         $tanggapan->alasan = $request->input('alasan');
 
-        $keluhan = keluhan::find($request->input('keluhan_id'));
+        if ($keluhan->tanggapan === 'belum ditanggapi') {
+            if ($acceptHeader === 'application/json' || $contentTypeHeader === 'application/xml') {
+                if ($contentTypeHeader === 'application/json' || $contentTypeHeader === 'application/xml') {
 
-        if ($acceptHeader === 'application/json' || $contentTypeHeader === 'application/xml') {
-            if ($contentTypeHeader === 'application/json' || $contentTypeHeader === 'application/xml') {
-                // Response Accept : 'application/json'
-                if ($acceptHeader === 'application/json' && $contentTypeHeader === 'application/json') {
-                    $tanggapan->save();
-                    $keluhan->delete();
-                    return response()->json($tanggapan, 200);
-                }  else if ($acceptHeader === 'appication/xml' && $contentTypeHeader === 'application/xml') {
-                    $tanggapan->save();
-                    $keluhan->delete();
-                    $xml = new \SimpleXMLElement('<Tanggapan/>');
+                    // Response Accept : 'application/json'
+                    if ($acceptHeader === 'application/json' && $contentTypeHeader === 'application/json') {
+                        $tanggapan->save();
 
-                    $xml->addChild('tanggapan_id', $tanggapan->tanggapan_id);
-                    $xml->addChild('keluhan_id', $tanggapan->keluhan_id);
-                    $xml->addChild('petugas_id', $tanggapan->petugas_id);
-                    $xml->addChild('tanggapan', $tanggapan->tanggapan);
-                    $xml->addChild('alasan', $tanggapan->alasan);
-                    $xml->addChild('created_at', $tanggapan->created_at);
-                    $xml->addChild('updated_at', $tanggapan->updated_at);
+                        $keluhan->tanggapan = 'ditanggapi';
+                        $keluhan->save();
+                        
+                        return response()->json($tanggapan, 200);
+                    }  
+                    
+                    // Response Accept : 'application/xml'
+                    else if ($acceptHeader === 'appication/xml' && $contentTypeHeader === 'application/xml') {
+                        $tanggapan->save();
 
-                    return $xml->asXML();
+                        $keluhan->tanggapan = 'ditanggapi';
+                        $keluhan->save();
+                        $xml = new \SimpleXMLElement('<Tanggapan/>');
+
+                        $xml->addChild('tanggapan_id', $tanggapan->tanggapan_id);
+                        $xml->addChild('keluhan_id', $tanggapan->keluhan_id);
+                        $xml->addChild('petugas_id', $tanggapan->petugas_id);
+                        $xml->addChild('isi', $tanggapan->isi);
+                        $xml->addChild('tanggapan', $tanggapan->tanggapan);
+                        $xml->addChild('alasan', $tanggapan->alasan);
+                        $xml->addChild('created_at', $tanggapan->created_at);
+                        $xml->addChild('updated_at', $tanggapan->updated_at);
+
+                        return $xml->asXML();
+                    } else {
+                        return response('Not Acceptable!', 406);
+                    }
                 } else {
-                    return response('Not Acceptable!', 406);
+                    return response('Unsupported Media Type', 403);
                 }
             } else {
-                return response('Unsupported Media Type', 403);
+                return response('Not Acceptable!', 406);
             }
         } else {
             return response('Not Acceptable!', 406);
@@ -172,6 +188,7 @@ class TanggapanController extends Controller {
                 $xml->addChild('tanggapan_id', $tanggapan->tanggapan_id);
                 $xml->addChild('keluhan_id', $tanggapan->keluhan_id);
                 $xml->addChild('petugas_id', $tanggapan->petugas_id);
+                $xml->addChild('isi', $tanggapan->tanggapan);
                 $xml->addChild('tanggapan', $tanggapan->tanggapan);
                 $xml->addChild('alasan', $tanggapan->alasan);
                 $xml->addChild('created_at', $tanggapan->created_at);
@@ -192,6 +209,9 @@ class TanggapanController extends Controller {
      * @return \Illuminate\Http\Response
      */
     public function update(Request $request, $id) {
+        $acceptHeader = $request->header('Accept');
+        $contentTypeHeader = $request->header('Content-Type');
+
         if (Gate::denies('admin')) {
             return response()->json([
                 'success' => false,
@@ -200,11 +220,9 @@ class TanggapanController extends Controller {
             ], 403);
         }
 
-        $acceptHeader = $request->header('Accept');
-        $contentTypeHeader = $request->header('Content-Type');
-
         $input = $request->all();
 
+        // Validation Rules
         $validationRules = [
             'keluhan_id' => 'required|exist:keluhan, keluhan_id',
             'petugas_id' => Auth::guard('admin')->user()->petugas_id,
@@ -241,6 +259,7 @@ class TanggapanController extends Controller {
                     $xml->addChild('tanggapan_id', $tanggapan->tanggapan_id);
                     $xml->addChild('keluhan_id', $tanggapan->keluhan_id);
                     $xml->addChild('petugas_id', $tanggapan->petugas_id);
+                    $xml->addChild('isi', $tanggapan->tanggapan);
                     $xml->addChild('tanggapan', $tanggapan->tanggapan);
                     $xml->addChild('alasan', $tanggapan->alasan);
                     $xml->addChild('created_at', $tanggapan->created_at);
@@ -264,8 +283,9 @@ class TanggapanController extends Controller {
      * @param  int  $id
      * @return \Illuminate\Http\Response
      */
-    public function destroy(Request $request, $id)
-    {
+    public function destroy(Request $request, $id) {
+        $acceptHeader = $request->header('Accept');
+        
         if (Gate::denies('admin')) {
             return response()->json([
                 'success' => false,
@@ -274,7 +294,6 @@ class TanggapanController extends Controller {
             ], 403);
         }
 
-        $acceptHeader = $request->header('Accept');
 
         if ($acceptHeader === 'application/json' || $acceptHeader === 'application/xml') {
             $tanggapan = Tanggapan::find($id);
@@ -300,6 +319,8 @@ class TanggapanController extends Controller {
 
                 $xml->addChild('message', 'Deleted Successfully!');
                 $xml->addChild('petugas_id', $id);
+
+                return $xml->asXML();
             }
         } else {
             return response('Not Acceptable!', 406);

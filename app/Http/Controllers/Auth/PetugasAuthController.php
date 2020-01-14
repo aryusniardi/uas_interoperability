@@ -7,6 +7,7 @@
     use Illuminate\Support\Facades\Validator;
     use Illuminate\Validation\Rule as Rule;
     use Illuminate\Support\Facades\Auth;
+    use Illuminate\Support\Facades\Gate;
 
 class PetugasAuthController extends Controller {
         /**
@@ -16,6 +17,14 @@ class PetugasAuthController extends Controller {
          * @return Response
          */
         public function register(Request $request) {
+            if (Gate::denies('admin')) {
+                return response()->json([
+                    'success' => false,
+                    'status' => 403,
+                    'message' => 'You are Unauthorized'
+                ], 403);
+            }
+
             // Validation
             $this->validate($request, [
                 'email' => 'required|email|unique:petugas',
@@ -58,6 +67,14 @@ class PetugasAuthController extends Controller {
          * @return Response
          */
         public function login(Request $request) {
+            if (Gate::denies('admin')) {
+                return response()->json([
+                    'success' => false,
+                    'status' => 403,
+                    'message' => 'You are Unauthorized'
+                ], 403);
+            }
+            
             $input = $request->all();
 
             // Validation Rules

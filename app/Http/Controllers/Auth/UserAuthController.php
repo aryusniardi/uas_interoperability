@@ -6,6 +6,7 @@
     use App\Models\User;
     use Illuminate\Support\Facades\Validator;
     use Illuminate\Support\Facades\Auth;
+    use Illuminate\Support\Facades\Gate;
 
 class UserAuthController extends Controller {
         /**
@@ -15,6 +16,14 @@ class UserAuthController extends Controller {
          * @return Response
          */
         public function register(Request $request) {
+            if (Gate::allows('admin')) {
+                return response()->json([
+                    'success' => false,
+                    'status' => 403,
+                    'message' => 'You are Unauthorized'
+                ], 403);
+            }
+
             // Validation
             $this->validate($request, [
                 'nama' => 'required|string|min:5',
@@ -57,6 +66,14 @@ class UserAuthController extends Controller {
          * @return Response
          */
         public function login(Request $request){
+            if (Gate::allows('admin')) {
+                return response()->json([
+                    'success' => false,
+                    'status' => 403,
+                    'message' => 'You are Unauthorized'
+                ], 403);
+            }
+
         $input = $request->all();
 
         $validationRules = [

@@ -2,59 +2,22 @@
 namespace App\Http\Controllers;
 
 use App\Models\Saran;
-//use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
 
 class SaranController extends Controller {
-	public function store(Request $request){
-		$acceptHeader = $request->header('Accept');
+    /**
+     * Display a listing of the resource.
+     * 
+     * @return \Illuminate\Http\Response
+     */
+    public function index(Request $request) {
+        $acceptHeader = $request->header('Accept');
+
         if ($acceptHeader === 'application/json' || $acceptHeader === 'application/xml') {
-
-            $contentTypeHeader = $request->header('Content-Type');
-                $input = $request->all();
-
-                /*
-				protected $fillable = array ('user_id', 'jenis_saran', 'lokasi_sarab', 'isi_saran');
-                */
-
-                $validationRules = [
-                    //'user_id' => 'required',
-                    'jenis_saran' => 'required|in:pelayanan,infrastruktur',
-                    'lokasi_saran' => 'required',
-                    'isi_saran' => 'required',
-                ];
-
-                $validator = Validator::make($input, $validationRules)
-                ;
-
-                if ($validator->fails()) {
-                    return response()->json($validator->errors(), 400);
-                }
-
-                $saran = new Saran;
-                $saran->user_id = Auth::guard('user')->user()->user_id;
-                $saran->jenis_saran = $request->input('jenis_saran');
-                $saran->lokasi_saran = $request->input('lokasi_saran');
-                $saran->isi_saran = $request->input('isi_saran');
-                $saran->save();
-
-                return response()->json($saran, 200);
-        } else {
-            return response('Not Acceptable!', 406);
-        }
-	}
-
-	public function index(Request $request){
-		$acceptHeader = $request->header('Accept');
-
-         if ($acceptHeader === 'application/json' || $acceptHeader === 'application/xml') {
-
-            $id = Auth::guard('user')->user()->user_id;
-
-            $saran = Saran::where("user_id", $id)->paginate(4)->toArray();
+            $saran = Saran::OrderBy("user_id", "DESC")->paginate(10)->toArray();
 
             if (!$saran) {
                 abort(404);
@@ -69,14 +32,12 @@ class SaranController extends Controller {
                 ],
                 "data" => $saran["data"],
             ];
-            
+
             // Response Accept : 'application/json'
             if ($acceptHeader === 'application/json') {
                 return response()->json($response, 200);
             }
-            /*
-				protected $fillable = array ('user_id', 'jenis_saran', 'lokasi_sarab', 'isi_saran');
-                */
+
             // Response Accept : 'application/xml'
             else {
                 $xml = new \SimpleXMLElement('<Data_Saran/>');
@@ -101,27 +62,81 @@ class SaranController extends Controller {
                 }
 
                 return $xml->asXML();
-            } 
+            }
         } else {
             return response('Not Acceptable!', 406);
         }
-	}
+    }
 
-	public function show(Request $request, $id){
-		$acceptHeader = $request->header('Accept');
-        
+    /**
+     * Store a newly created resource in storage.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\Response
+     */
+    public function store(Request $request) {
+        $acceptHeader = $request->header('Accept');
+        $contentTypeHeader = $request->header('Content-Type');
+
+        if (Gate::allows('admin')) {
+            return response()->json([
+                'success' => false,
+                'status' => 403,
+                'message' => 'You are Unauthorized'
+            ], 403);
+        }
+
+        $input = $request->all();
+
+        $validationRules = [
+            'jenis_saran' => 'required|in:pelayanan,infrastruktur',
+            'lokasi_saran' => 'required',
+            'isi_saran' => 'required',
+        ];
+
+        $validator = Validator::make($input, $validationRules);
+
+        if ($validator->fails()) {
+            return response()->json($validator->errors(), 400);
+        }
+
+        $saran = new Saran;
+        $saran->user_id = Auth::guard('user')->user()->user_id;
+        $saran->jenis_saran = $request->input('jenis_saran');
+        $saran->lokasi_saran = $request->input('lokasi_saran');
+        $saran->isi_saran = $request->input('isi_saran');
+
+        if ($acceptHeader === 'application/json' || $acceptHeader === 'application/xml') {
+            // Content-Type tolong hey :(
+            $saran->save();
+
+            return response()->json($saran, 200);
+        } else {
+            return response('Not Acceptable!', 406);
+        }
+    }
+
+    /**
+     * Display the specified resource.
+     * 
+     * @param int $id
+     * @return \Illuminate\Http\Response
+     */
+    public function show(Request $request, $id) {
+        $acceptHeader = $request->header('Accept');
+
         if ($acceptHeader === 'application/json' || $acceptHeader === 'application/xml') {
             $saran = Saran::find($id);
 
             if (!$saran) {
                 abort(404);
             }
-            
+
             // Response Accept : 'application/json'
             if ($acceptHeader === 'application/json') {
                 return response()->json($saran, 200);
-            } 
-            
+            }
+
             // Response Accept : 'application/xml'
             else {
                 $xml = new \SimpleXMLElement('<saran/>');
@@ -139,11 +154,45 @@ class SaranController extends Controller {
         } else {
             return response('Not Acceptable!', 406);
         }
-	}
+    }
 
+    /**
+     * Update the specified resource in storage.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @param  int  $id
+     * @return \Illuminate\Http\Response
+     */
+    public function update(Request $request, $id) {
+        if (Gate::allows('admin')) {
+            return response()->json([
+                'success' => false,
+                'status' => 403,
+                'message' => 'You are Unauthorized'
+            ], 403);
+        }
+
+        // Lanjutkan function update nya son
+    }
+
+    /**
+     * Remove the specified resource from storage.
+     *
+     * @param  int  $id
+     * @return \Illuminate\Http\Response
+     */
 	public function destroy(Request $request, $id){
-		$acceptHeader = $request->header('Accept');
+        $acceptHeader = $request->header('Accept');
+
+        if (Gate::allows('admin')) {
+            return response()->json([
+                'success' => false,
+                'status' => 403,
+                'message' => 'You are Unauthorized'
+            ], 403);
+        }
         
+        // Validating Header : 'Accept'
         if ($acceptHeader === 'application/json' || $acceptHeader === 'application/xml') {
             $saran = Saran::find($id);
 
@@ -151,25 +200,29 @@ class SaranController extends Controller {
                 abort(404);
             }
             
-            $saran->delete();
-            $response = [
-                'message' => 'Deleted Successfully!',
-                'user_id' => $id
-            ];
+            if (Auth::guard('user')->user()->user_id === $id) {
+                $saran->delete();
+                $response = [
+                    'message' => 'Deleted Successfully!',
+                    'user_id' => $id
+                ];
 
-            // Response Accept : 'application/json'
-            if ($acceptHeader === 'application/json') {
-                return response()->json($saran, 200);
-            } 
-            
-            // Response Accept : 'application/xml'
-            else {
-                $xml = new \SimpleXMLElement('<saran/>');
+                // Response Accept : 'application/json'
+                if ($acceptHeader === 'application/json') {
+                    return response()->json($response, 200);
+                }
 
-                $xml->addChild('message', 'Deleted Successfully!');
-                $xml->addChild('petugas_id', $id);
+                // Response Accept : 'application/xml'
+                else {
+                    $xml = new \SimpleXMLElement('<saran/>');
 
-                return $xml->asXML();
+                    $xml->addChild('message', 'Deleted Successfully!');
+                    $xml->addChild('petugas_id', $id);
+
+                    return $xml->asXML();
+                }
+            } else {
+                return response('You are Unauthorized', 403);
             }
         } else {
             return response('Not Acceptable!', 406);

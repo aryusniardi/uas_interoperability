@@ -2,27 +2,31 @@
 namespace App\Http\Controllers;
 
 use App\Models\Keluhan;
-//use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
 
 class KeluhanController extends Controller {
-
-    public function index(Request $request){
+    /**
+     * Display a listing of the resource.
+     * 
+     * @return \Illuminate\Http\Response
+     */
+    public function index(Request $request) {
         $acceptHeader = $request->header('Accept');
 
+        if (Gate::allows('admin')) {
+            $keluhan = Keluhan::OrderBy("keluhan_id", "DESC")->paginate(10);
+        } else {
+            $keluhan = Keluhan::Where("user_id", Auth::guard('user')->user()->user_id);
+        }
+
+        if (!$keluhan) {
+            abort(404);
+        }
+
          if ($acceptHeader === 'application/json' || $acceptHeader === 'application/xml') {
-
-            $id = Auth::guard('user')->user()->user_id;
-
-            $keluhan = Keluhan::where("user_id", $id)->paginate(4)->toArray();
-
-            if (!$keluhan) {
-                abort(404);
-            }
-
             $response = [
                 "total_count" => $keluhan["total"],
                 "limit" => $keluhan["per_page"],
@@ -68,63 +72,79 @@ class KeluhanController extends Controller {
         }
     }
 
-	public function store(Request $request){
-        /*if (Gate::denies('user')) {
+    /**
+     * Store a newly created resource in storage.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\Response
+     */
+	public function store(Request $request) {
+        $acceptHeader = $request->header('Accept');
+        $contentTypeHeader = $request->header('Content-Type');
+
+        if (Gate::denies('admin')) {
             return response()->json([
                 'success' => false,
                 'status' => 403,
                 'message' => 'You are Unauthorized'
             ], 403);
-        }*/
+        }
 
-		$acceptHeader = $request->header('Accept');
         if ($acceptHeader === 'application/json' || $acceptHeader === 'application/xml') {
+            $input = $request->all();
 
-            $contentTypeHeader = $request->header('Content-Type');
-                $input = $request->all();
+            $validationRules = [
+                'jenis_keluhan' => 'required|in:pelayanan,infrastruktur',
+                'lokasi_keluhan' => 'required',
+                'foto_keluhan' => 'required',
+                'isi_keluhan' => 'required',
+            ];
 
-                $validationRules = [
-                    //'user_id' => 'required',
-                    'jenis_keluhan' => 'required|in:pelayanan,infrastruktur',
-                    'lokasi_keluhan' => 'required',
-                    'foto_keluhan' => 'required',
-                    'isi_keluhan' => 'required',
-                ];
+            $validator = Validator::make($input, $validationRules);
 
-                $validator = Validator::make($input, $validationRules)
-                ;
+            if ($validator->fails()) {
+                return response()->json($validator->errors(), 400);
+            }
 
-                if ($validator->fails()) {
-                    return response()->json($validator->errors(), 400);
-                }
+            $keluhan = new Keluhan;
+            $keluhan->user_id = Auth::guard('user')->user()->user_id;
+            $keluhan->jenis_keluhan = $request->input('jenis_keluhan');
+            $keluhan->lokasi_keluhan = $request->input('lokasi_keluhan');
 
-                $keluhan = new Keluhan;
-                $keluhan->user_id = Auth::guard('user')->user()->user_id;
-                $keluhan->jenis_keluhan = $request->input('jenis_keluhan');
-                $keluhan->lokasi_keluhan = $request->input('lokasi_keluhan');
-                if ($request->hasFile('foto_keluhan')) {
-                    $imgName = 'foto_keluhan2';
-                    $request->file('foto_keluhan')->move(storage_path('uploads/foto_keluhan'),$imgName);
-                    $keluhan->foto_keluhan = $imgName;
-                }
-                $keluhan->isi_keluhan = $request->input('isi_keluhan');
-                $keluhan->save();
-                return response()->json($keluhan, 200);
+            if ($request->hasFile('foto_keluhan')) {
+                $imgName = 'foto_keluhan2';
+                $request->file('foto_keluhan')->move(storage_path('uploads/foto_keluhan'),$imgName);
+                $keluhan->foto_keluhan = $imgName;
+            }
+            
+            $keluhan->isi_keluhan = $request->input('isi_keluhan');
+            $keluhan->save();
+            return response()->json($keluhan, 200);
         } else {
             return response('Not Acceptable!', 406);
         }
 	}
 
-    public function show(Request $request, $id){
+    /**
+     * Display the specified resource.
+     * 
+     * @param int $id
+     * @return \Illuminate\Http\Response
+     */
+    public function show(Request $request, $id) {
         $acceptHeader = $request->header('Accept');
-        
-        if ($acceptHeader === 'application/json' || $acceptHeader === 'application/xml') {
-            $keluhan = keluhan::find($id);
 
-            if (!$keluhan) {
-                abort(404);
-            }
-            
+        if (Gate::allows('admin')) {
+            $keluhan = Keluhan::find($id);
+        } else {
+            $keluhan = Keluhan::find(Auth::guard('user')->user()->keluhan_id);
+        }
+
+        if (!$keluhan) {
+            abort(404);
+        }
+
+        if ($acceptHeader === 'application/json' || $acceptHeader === 'application/xml') {
             // Response Accept : 'application/json'
             if ($acceptHeader === 'application/json') {
                 return response()->json($keluhan, 200);
@@ -150,25 +170,59 @@ class KeluhanController extends Controller {
         }
     }
 
-    public function destroy(Request $request, $id){
+    /**
+     * Update the specified resource in storage.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @param  int  $id
+     * @return \Illuminate\Http\Response
+     */
+    public function update(Request $request, $id) {
         $acceptHeader = $request->header('Accept');
+        $contentTypeHeader = $request->header('Content-Type');
+        
+        if (Gate::allows('admin')) {
+            $keluhan = Keluhan::find($id);
+        } else {
+            $keluhan = Keluhan::find(Auth::guard('user')->user()->keluhan_id);
+        }
+
+        if (!$keluhan) {
+            abort(404);
+        }
+        
+        // Lanjutkan nak....
+    }
+
+    /**
+     * Remove the specified resource from storage.
+     *
+     * @param  int  $id
+     * @return \Illuminate\Http\Response
+     */
+    public function destroy(Request $request, $id) {
+        $acceptHeader = $request->header('Accept');
+
+        if (Gate::allows('admin')) {
+            $keluhan = Keluhan::find($id);
+        } else {
+            $keluhan = Keluhan::find(Auth::guard('user')->user()->keluhan_id);
+        }
+
+        if (!$keluhan) {
+            abort(404);
+        }
         
         if ($acceptHeader === 'application/json' || $acceptHeader === 'application/xml') {
-            $keluhan = keluhan::find($id);
-
-            if (!$keluhan) {
-                abort(404);
-            }
-            
             $keluhan->delete();
             $response = [
                 'message' => 'Deleted Successfully!',
-                'user_id' => $id
+                'keluhan_id' => $id
             ];
 
             // Response Accept : 'application/json'
             if ($acceptHeader === 'application/json') {
-                return response()->json($keluhan, 200);
+                return response()->json($response, 200);
             } 
             
             // Response Accept : 'application/xml'
