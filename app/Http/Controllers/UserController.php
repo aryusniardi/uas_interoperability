@@ -18,8 +18,8 @@ class UserController extends Controller {
 	public function index(Request $request){
 		$acceptHeader = $request->header('Accept');
 
-		if (Gate::allows('admin')) {
-			$user = User::OrderBy("user_id","DESC")->paginate(2);
+		if (Gate::denies('admin')) {
+			$user = User::OrderBy("user_id","DESC")->paginate(10);
 		} else {
 			$user = User::find(Auth::guard('user')->user()->user_id);
 		}

@@ -17,14 +17,6 @@ class PetugasAuthController extends Controller {
          * @return Response
          */
         public function register(Request $request) {
-            if (Gate::denies('admin')) {
-                return response()->json([
-                    'success' => false,
-                    'status' => 403,
-                    'message' => 'You are Unauthorized'
-                ], 403);
-            }
-
             // Validation
             $this->validate($request, [
                 'email' => 'required|email|unique:petugas',
@@ -67,14 +59,6 @@ class PetugasAuthController extends Controller {
          * @return Response
          */
         public function login(Request $request) {
-            if (Gate::denies('admin')) {
-                return response()->json([
-                    'success' => false,
-                    'status' => 403,
-                    'message' => 'You are Unauthorized'
-                ], 403);
-            }
-            
             $input = $request->all();
 
             // Validation Rules
@@ -99,6 +83,18 @@ class PetugasAuthController extends Controller {
                 'token' => $token,
                 'token_type' => 'bearier',
                 'expires_in' => Auth::factory('admin')->getTTL() * 60
+            ], 200);
+        }
+
+        /**
+         * Logout.
+         */
+        public function logout() {
+            Auth::guard('admin')->logout();
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'logout',
             ], 200);
         }
     }

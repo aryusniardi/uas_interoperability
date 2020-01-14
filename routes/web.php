@@ -21,14 +21,16 @@ $router->get('/', function () use ($router) {
 Route::group(['prefix' => 'auth'], function () use ($router) {
     $router->post('/user/register', 'Auth\\UserAuthController@register');
     $router->post('/user/login', 'Auth\\UserAuthController@login');
+    $router->post('/user/logout', 'Auth\\UserAuthController@logout');
 });
 
 // Petugas Authentication
 Route::group(['prefix' => 'auth'], function() use ($router) {
     $router->post('/petugas/register', 'Auth\\PetugasAuthController@register');
     $router->post('/petugas/login', 'Auth\\PetugasAuthController@login');
+    $router->post('/petugas/logout', 'Auth\\PetugasAuthController@logout');
 });
- 
+
 // Authorized Routes
 Route::group(['middleware' => ['auth']], function ($router) {
     // Petugas End-Point
@@ -36,7 +38,7 @@ Route::group(['middleware' => ['auth']], function ($router) {
     $router->get('/petugas/{id}', 'PetugasController@show');
     $router->put('/petugas/{id}', 'PetugasController@update');
     $router->delete('petugas/{id}', 'PetugasController@destroy');
-
+    
     // User End-Point
     $router->get('/user', 'UserController@index');
     $router->get('/user/{id}', 'UserController@show');

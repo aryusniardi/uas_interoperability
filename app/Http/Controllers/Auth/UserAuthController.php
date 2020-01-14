@@ -9,71 +9,55 @@
     use Illuminate\Support\Facades\Gate;
 
 class UserAuthController extends Controller {
-        /**
-         * Store a new Petugas
-         * 
-         * @param Request $request
-         * @return Response
-         */
-        public function register(Request $request) {
-            if (Gate::allows('admin')) {
-                return response()->json([
-                    'success' => false,
-                    'status' => 403,
-                    'message' => 'You are Unauthorized'
-                ], 403);
-            }
+    /**
+     * Store a new Petugas
+     * 
+     * @param Request $request
+     * @return Response
+    */
+    public function register(Request $request) {
+        // Validation
+        $this->validate($request, [
+            'nama' => 'required|string|min:5',
+            'email' => 'required|email|unique:petugas',
+            'password' => 'required|confirmed|min:6',
+        ]);
 
-            // Validation
-            $this->validate($request, [
-                'nama' => 'required|string|min:5',
-                'email' => 'required|email|unique:petugas',
-                'password' => 'required|confirmed|min:6',
-            ]);
+        $input = $request->all();
 
-            $input = $request->all();
+        // Validation Starts
+        $validationRules = [
+            'nama' => 'required|string|min:5',
+            'email' => 'required|email|unique:petugas',
+            'password' => 'required|confirmed|min:6',
+        ];
 
-            // Validation Starts
-            $validationRules = [
-                'nama' => 'required|string|min:5',
-                'email' => 'required|email|unique:petugas',
-                'password' => 'required|confirmed|min:6',
-            ];
+        $validator = Validator::make($input, $validationRules);
 
-            $validator = Validator::make($input, $validationRules);
+        if ($validator->fails()) {
+            return response()->json($validator->errors(), 400);
+        } 
+        // Validation Ends
 
-            if ($validator->fails()) {
-                return response()->json($validator->errors(), 400);
-            } 
-            // Validation Ends
+        // Create new Petugas
+        $user = new User;
+        $user->nama = $request->input('nama');
+        $user->email = $request->input('email');
+        $plainPassword = $request->input('password');
+        $user->password = app('hash')->make($plainPassword);
 
-            // Create new Petugas
-            $user = new User;
-            $user->nama = $request->input('nama');
-            $user->email = $request->input('email');
-            $plainPassword = $request->input('password');
-            $user->password = app('hash')->make($plainPassword);
+        $user->save();
 
-            $user->save();
+        return response()->json($user, 200);
+    }
 
-            return response()->json($user, 200);
-        }
-
-        /**
-         * Get a JWT via given credentials.
-         * 
-         * @param Request $request
-         * @return Response
-         */
-        public function login(Request $request){
-            if (Gate::allows('admin')) {
-                return response()->json([
-                    'success' => false,
-                    'status' => 403,
-                    'message' => 'You are Unauthorized'
-                ], 403);
-            }
-
+    /**
+     * Get a JWT via given credentials.
+     * 
+     * @param Request $request
+     * @return Response
+     */
+    public function login(Request $request){
         $input = $request->all();
 
         $validationRules = [
@@ -99,5 +83,18 @@ class UserAuthController extends Controller {
             'token_type' => 'bearer',
             'expires_in' => Auth::factory('user')->getTTL()*60
         ],200);
-     }
     }
+
+    /**
+     * Logout.
+     */
+    public function logout()
+    {
+        Auth::guard('user')->logout();
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'logout',
+        ], 200);
+    }
+}

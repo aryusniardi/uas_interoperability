@@ -26,7 +26,7 @@ class PetugasController extends Controller {
         // Validating Header : 'Accept'
         if ($acceptHeader === 'application/json' || $acceptHeader === 'application/xml') {
             if (Auth::guard('admin')->user()->role === 'super admin') {
-                $petugas = Petugas::OrderBy("petugas_id", "DESC")->first()->paginate(2)->toArray();
+                $petugas = Petugas::OrderBy("petugas_id", "DESC")->first()->paginate(10)->toArray();
 
                 if (!$petugas) {
                     abort(404);

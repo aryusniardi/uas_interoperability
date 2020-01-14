@@ -17,9 +17,9 @@ class KeluhanController extends Controller {
         $acceptHeader = $request->header('Accept');
 
         if (Gate::allows('admin')) {
-            $keluhan = Keluhan::OrderBy("keluhan_id", "DESC")->paginate(10);
+            $keluhan = Keluhan::OrderBy("keluhan_id", "DESC")->paginate(10)->toArray();
         } else {
-            $keluhan = Keluhan::Where("user_id", Auth::guard('user')->user()->user_id);
+            $keluhan = Keluhan::Where("user_id", Auth::guard('user')->user()->user_id)->toArray();
         }
 
         if (!$keluhan) {
