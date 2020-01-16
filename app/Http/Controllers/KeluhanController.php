@@ -112,7 +112,7 @@ class KeluhanController extends Controller {
             $keluhan->lokasi_keluhan = $request->input('lokasi_keluhan');
 
             if ($request->hasFile('foto_keluhan')) {
-                $imgName = 'foto_keluhan' . rand();
+                $imgName = 'foto_keluhan' . rand(0,100);
                 $request->file('foto_keluhan')->move(storage_path('uploads/foto_keluhan'),$imgName);
                 $keluhan->foto_keluhan = $imgName;
             }
@@ -166,6 +166,21 @@ class KeluhanController extends Controller {
         }
     }
 
+    public function image($id_keluhan){
+        $imageName = Keluhan::Where('keluhan_id',$id_keluhan)->pluck('foto_keluhan')->first();
+        //$a = $imageName->foto_keluhan;
+        $imagePath = storage_path('uploads/foto_keluhan').'/'.$imageName;
+        if(file_exists($imagePath)){
+            $file = file_get_contents($imagePath);
+            return response($file,200)->header('Content-Type','image/jpeg');
+        }
+
+        return response()->json(array(
+            "message" => "image not found",
+            $imageName
+        ),401);
+    }
+
     /**
      * Update the specified resource in storage.
      *
@@ -183,6 +198,58 @@ class KeluhanController extends Controller {
             abort(404);
         }
         
+        $input = $request->all();
+
+        $validationRules =[
+            'jenis_keluhan' => 'required|in:pelayanan,infrastruktur',
+            'lokasi_keluhan' => 'required',
+            //'foto_keluhan' => 'required',
+            'isi_keluhan' => 'required',
+        ];
+
+        $validator = Validator::make($input,$validationRules);
+
+        if ($acceptHeader === 'application/json' || $acceptHeader === 'application/xml') {
+            $keluhan = Keluhan::find($id);
+            if (!$keluhan) {
+                abort(404);
+            }
+            $keluhan->fill($input);
+            $keluhan->save();
+
+            if ($acceptHeader === 'application/json') {
+                if ($contentTypeHeader === 'application/json') {
+                    return response()->json($keluhan, 200);
+                } else {
+                    return response('Unsupported Media Type', 403);
+                }
+            }
+            else if ($acceptHeader === 'application/xml') {
+                if ($contentTypeHeader === 'application/xml') {
+                    $xml = new \SimpleXMLElement('<Keluhan/>');
+
+                    $xml->addChild('keluhan_id', $keluhan->keluhan_id);
+                    $xml->addChild('user_id', $keluhan->user_id);
+                    $xml->addChild('jenis_keluhan', $keluhan->jenis_keluhan);
+                    $xml->addChild('lokasi_keluhan', $keluhan->lokasi_keluhan);
+                    $xml->addChild('foto_keluhan', $keluhan->foto_keluhan);
+                    $xml->addChild('isi_keluhan', $keluhan->isi_keluhan);
+                    $xml->addChild('created_at', $keluhan->created_at);
+                    $xml->addChild('updated_at', $keluhan->updated_at);
+
+                    return $xml->asXML();
+                }
+                else {
+                    return response('Unsupported Media Type', 403);
+                }
+            }
+            else {
+                return response('Not Acceptable!', 406);
+            }
+        }
+        else {
+            return response('Not Acceptable!', 406);
+        }
         // Lanjutkan nak....
     }
 

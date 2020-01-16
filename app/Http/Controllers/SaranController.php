@@ -172,6 +172,65 @@ class SaranController extends Controller {
             ], 403);
         }
 
+        $input = $request->all();
+
+
+        $validationRules = [
+            'jenis_saran' => 'required|in:pelayanan,infrastruktur',
+            'lokasi_saran' => 'required',
+            'isi_saran' => 'required',
+        ];
+
+        $validator = Validator::make($input, 
+            $validationRules);
+
+        if ($validator->fails()) {
+            return response()->json($validator->errors(), 400);
+        }
+
+        $acceptHeader = $request->header('Accept');
+        $contentTypeHeader = $request->header('Content-Type');
+        
+        if ($acceptHeader === 'application/json' || $acceptHeader === 'application/xml') {
+            $saran = Saran::find($id);
+            if (!$saran) {
+                abort(404);
+            }
+            $saran->fill($input);
+            $saran->save();
+
+            if ($acceptHeader === 'application/json') {
+                if ($contentTypeHeader === 'application/json') {
+                    return response()->json($saran, 200);
+                } else {
+                    return response('Unsupported Media Type', 403);
+                }
+            }
+            else if ($acceptHeader === 'application/xml') {
+                if ($contentTypeHeader === 'application/xml') {
+                    $xml = new \SimpleXMLElement('<saran/>');
+
+                    $xml->addChild('saran_id', $saran->keluhan_id);
+                    $xml->addChild('user_id', $saran->user_id);
+                    $xml->addChild('jenis_saran', $saran->jenis_saran);
+                    $xml->addChild('lokasi_saran', $saran->lokasi_saran);
+                    $xml->addChild('isi_saran', $saran->isi_saran);
+                    $xml->addChild('created_at', $saran->created_at);
+                    $xml->addChild('updated_at', $saran->updated_at);
+
+                    return $xml->asXML();
+                }
+                else {
+                    return response('Unsupported Media Type', 403);
+                }
+            }
+            else {
+                return response('Not Acceptable!', 406);
+            }
+        }
+        else {
+            return response('Not Acceptable!', 406);
+        }
         // Lanjutkan function update nya son
     }
 

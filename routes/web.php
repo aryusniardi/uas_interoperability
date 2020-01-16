@@ -53,12 +53,15 @@ Route::group(['middleware' => ['auth']], function ($router) {
     $router->get('/keluhan', 'KeluhanController@index');
     $router->get('/keluhan/{id}', 'KeluhanController@show');
     $router->delete('/keluhan/{id}', 'KeluhanController@destroy');
+    $router->get('/keluhan/image/{id_keluhan}','KeluhanController@image');
+    $router->put('/keluhan/{id}','KeluhanController@update');
 
     // Saran End-Point
     $router->post('/saran', 'SaranController@store');
     $router->get('/saran', 'SaranController@index');
     $router->get('/saran/{id}', 'SaranController@show');
     $router->delete('/saran/{id}', 'SaranController@destroy');
+    $router->put('/saran/{id}', 'SaranController@update');
 
     // Tanggapan End-Point
     $router->post('/tanggapan', 'TanggapanController@store');
