@@ -19,7 +19,7 @@ class KeluhanController extends Controller {
         if (Gate::allows('admin')) {
             $keluhan = Keluhan::OrderBy("keluhan_id", "DESC")->paginate(10)->toArray();
         } else {
-            $keluhan = Keluhan::Where("user_id", Auth::guard('user')->user()->user_id)->toArray();
+            $keluhan = Keluhan::Where(['user_id' => Auth::guard('user')->user()->user_id])->OrderBy("user_id", "DESC")->paginate(2)->toArray();
         }
 
         if (!$keluhan) {
@@ -82,7 +82,7 @@ class KeluhanController extends Controller {
         $acceptHeader = $request->header('Accept');
         $contentTypeHeader = $request->header('Content-Type');
 
-        if (Gate::denies('admin')) {
+        if (Gate::allows('admin')) {
             return response()->json([
                 'success' => false,
                 'status' => 403,
@@ -112,7 +112,7 @@ class KeluhanController extends Controller {
             $keluhan->lokasi_keluhan = $request->input('lokasi_keluhan');
 
             if ($request->hasFile('foto_keluhan')) {
-                $imgName = 'foto_keluhan2';
+                $imgName = 'foto_keluhan' . rand();
                 $request->file('foto_keluhan')->move(storage_path('uploads/foto_keluhan'),$imgName);
                 $keluhan->foto_keluhan = $imgName;
             }
@@ -134,13 +134,9 @@ class KeluhanController extends Controller {
     public function show(Request $request, $id) {
         $acceptHeader = $request->header('Accept');
 
-        if (Gate::allows('admin')) {
-            $keluhan = Keluhan::find($id);
-        } else {
-            $keluhan = Keluhan::find(Auth::guard('user')->user()->keluhan_id);
-        }
+        $keluhan = Keluhan::find($id);
 
-        if (!$keluhan) {
+        if (!$keluhan || $keluhan->user_id != Auth::guard('user')->user()->user_id) {
             abort(404);
         }
 
@@ -181,13 +177,9 @@ class KeluhanController extends Controller {
         $acceptHeader = $request->header('Accept');
         $contentTypeHeader = $request->header('Content-Type');
         
-        if (Gate::allows('admin')) {
-            $keluhan = Keluhan::find($id);
-        } else {
-            $keluhan = Keluhan::find(Auth::guard('user')->user()->keluhan_id);
-        }
-
-        if (!$keluhan) {
+        $keluhan = Keluhan::find($id);
+        
+        if (!$keluhan || $keluhan->user_id != Auth::guard('user')->user()->user_id) {
             abort(404);
         }
         
@@ -203,13 +195,9 @@ class KeluhanController extends Controller {
     public function destroy(Request $request, $id) {
         $acceptHeader = $request->header('Accept');
 
-        if (Gate::allows('admin')) {
-            $keluhan = Keluhan::find($id);
-        } else {
-            $keluhan = Keluhan::find(Auth::guard('user')->user()->keluhan_id);
-        }
-
-        if (!$keluhan) {
+        $keluhan = Keluhan::find($id);
+        
+        if(!$keluhan || $keluhan->user_id != Auth::guard('user')->user()->user_id) {
             abort(404);
         }
         

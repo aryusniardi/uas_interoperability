@@ -38,12 +38,15 @@ Route::group(['middleware' => ['auth']], function ($router) {
     $router->get('/petugas/{id}', 'PetugasController@show');
     $router->put('/petugas/{id}', 'PetugasController@update');
     $router->delete('petugas/{id}', 'PetugasController@destroy');
-    
+});
+
+Route::group(['middleware' => ['auth']], function ($router) {
     // User End-Point
     $router->get('/user', 'UserController@index');
     $router->get('/user/{id}', 'UserController@show');
     $router->put('/user', 'UserController@update');
     $router->delete('/user/{id}', 'UserController@destroy');
+});
 
     // Keluhan End-Point
     $router->post('/keluhan', 'KeluhanController@store');
@@ -61,11 +64,12 @@ Route::group(['middleware' => ['auth']], function ($router) {
     $router->post('/tanggapan', 'TanggapanController@store');
     $router->put('/tanggapan/{id}', 'TanggapanController@update');
     $router->delete('tanggapan/{id}', 'TanggapanController@destroy');
-});
 
-// Public Route
-$router->get('/public/tanggapan', 'TanggapanController@index');
-$router->get('/public/tanggapan/{id}', 'TanggapanController@show');
+// Public Route - Tanggapan
+    $router->get('/public/tanggapan', 'TanggapanController@index');
+    $router->get('/public/tanggapan/{id}', 'TanggapanController@show');
 
-$router->get('/public/saran', 'SaranController@index');
-$router->get('/public/saran/{id}', 'SaranController@show');
+
+// Public Route - Saran
+    $router->get('/public/saran', 'SaranController@index');
+    $router->get('/public/saran/{id}', 'SaranController@show');
