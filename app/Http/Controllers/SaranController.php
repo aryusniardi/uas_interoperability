@@ -105,13 +105,46 @@ class SaranController extends Controller {
         $saran->jenis_saran = $request->input('jenis_saran');
         $saran->lokasi_saran = $request->input('lokasi_saran');
         $saran->isi_saran = $request->input('isi_saran');
-
-        if ($acceptHeader === 'application/json' || $acceptHeader === 'application/xml') {
+        $saran->save();
+        /*if ($acceptHeader === 'application/json' || $acceptHeader === 'application/xml') {
             // Content-Type tolong hey :(
             $saran->save();
 
             return response()->json($saran, 200);
         } else {
+            return response('Not Acceptable!', 406);
+        }*/
+        if ($acceptHeader === 'application/json' || $contentTypeHeader === 'application/xml') {
+            if ($contentTypeHeader === 'application/json' || $contentTypeHeader === 'application/xml') {
+                if ($acceptHeader === 'application/json' && $contentTypeHeader === 'application/json') {
+                    
+                    return response()->json($saran, 200);
+                }
+                elseif ($acceptHeader === 'appication/xml' && $contentTypeHeader === 'application/xml'){
+
+                    $xml = new \SimpleXMLElement('<saran/>');
+
+                    $xml->addChild('saran_id', $saran->keluhan_id);
+                    $xml->addChild('user_id', $saran->user_id);
+                    $xml->addChild('jenis_saran', $saran->jenis_saran);
+                    $xml->addChild('lokasi_saran', $saran->lokasi_saran);
+                    $xml->addChild('isi_saran', $saran->isi_saran);
+                    $xml->addChild('created_at', $saran->created_at);
+                    $xml->addChild('updated_at', $saran->updated_at);
+
+                    return $xml->asXML();
+                }
+                else {
+                    return response('Not Acceptable!', 406);
+                }
+            }
+            else {
+                return response('Unsupported Media Type', 403);
+            }
+                /*$keluhan->save();
+                return response()->json($keluhan, 200);*/
+        } 
+        else {
             return response('Not Acceptable!', 406);
         }
     }
