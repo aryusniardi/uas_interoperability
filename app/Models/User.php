@@ -13,7 +13,6 @@ class User extends Model implements AuthenticableContract, AuthorizeableContract
 	use Authenticatable, Authorizable;
 
 	// Table name = petugas
-	protected $guard = 'user';
 	protected $table = 'user';
 	protected $primaryKey = 'user_id';
 	/**

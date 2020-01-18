@@ -6,7 +6,6 @@
     use App\Models\User;
     use Illuminate\Support\Facades\Validator;
     use Illuminate\Support\Facades\Auth;
-    use Illuminate\Support\Facades\Gate;
 
 class UserAuthController extends Controller {
     /**
@@ -24,6 +23,7 @@ class UserAuthController extends Controller {
         ]);
 
         $input = $request->all();
+        $acceptHeader = $request->header('Accept');
 
         // Validation Starts
         $validationRules = [
@@ -46,9 +46,27 @@ class UserAuthController extends Controller {
         $plainPassword = $request->input('password');
         $user->password = app('hash')->make($plainPassword);
 
-        $user->save();
+        if ($acceptHeader === 'application/json' || $acceptHeader === 'application/xml') {
+            $user->save();
+    
+            // Response Accept : 'application/json'
+            if ($acceptHeader === 'application/json') {
+                return response()->json($user, 200);
+            }
 
-        return response()->json($user, 200);
+            // Response Accept : 'application/xml'
+            else {
+                $xml = new \SimpleXMLElement('<User/>');
+
+                $xml->addChild('Nama', $user->nama);
+                $xml->addChild('Email', $user->email);
+                $xml->addChild('Password', $user->password);
+
+                return $xml->asXML();
+            }
+        } else {
+            return response('Not Acceptable!', 200);
+        }
     }
 
     /**
@@ -59,6 +77,7 @@ class UserAuthController extends Controller {
      */
     public function login(Request $request){
         $input = $request->all();
+        $acceptHeader = $request->header('Accept');
 
         $validationRules = [
             'email' => 'required|string',
@@ -73,28 +92,69 @@ class UserAuthController extends Controller {
         }
 
         $credentials = $request->only(['email','password']);
-        if (! $token = Auth::guard('user')->attempt($credentials)) {
-            # code...
-            return response()->json(['message' => 'Unauthorized'], 401);
-        }
+        if ($acceptHeader === 'application/json' || $acceptHeader === 'application/xml') {
+            if (! $token = Auth::guard('user')->attempt($credentials)) {
+                # code...
+                return response()->json(['message' => 'Unauthorized'], 401);
+            }
+            
+            $response = [
+                'token' => $token,
+                'token_type' => 'bearer',
+                'expires_in' => Auth::factory('user')->getTTL()*60
+            ];
 
-        return response()->json([
-            'token' => $token,
-            'token_type' => 'bearer',
-            'expires_in' => Auth::factory('user')->getTTL()*60
-        ],200);
+            // Response Accept : 'application/json'
+            if ($acceptHeader === 'application/json') {
+                return response()->json($response, 200);
+            }
+
+            // Response Accept : 'application/xml'
+            else {
+                $xml = new \SimpleXMLElement('<Response/>');
+
+                $xml->addChild('token', $response['token']);
+                $xml->addChild('token_type', $response['token_type']);
+                $xml->addChild('expires_in', $response['expires_in']);
+
+                return $xml->asXML();
+            }
+        } else {
+            return response('Not Acceptable!', 403);
+        }
     }
 
     /**
      * Logout.
      */
-    public function logout()
-    {
-        Auth::guard('user')->logout();
+    public function logout(Request $request) {
+        $acceptHeader = $request->header('Accept');
+        if ($acceptHeader === 'application/json' || $acceptHeader === 'application/xml') {
+            $response = [
+                'status' => 'success',
+                'message' => 'logout'
+            ];
 
-        return response()->json([
-            'status' => 'success',
-            'message' => 'logout',
-        ], 200);
+            // Response Accept : 'application/json'
+            if ($acceptHeader === 'application/json') {
+                Auth::guard('user')->logout();
+
+                return response()->json($response, 200);
+            } 
+                
+            // Response Accept : 'application/xml'
+            else {
+                Auth::guard('user')->logout();
+
+                $xml = new \SimpleXMLElement('<Response/>');
+
+                $xml->addChild('status', $response['status']);
+                $xml->addChild('message', $response['message']);
+
+                return $xml->asXML();
+            }
+        } else {
+            return response('Not Acceptable!', 403);
+        }
     }
 }

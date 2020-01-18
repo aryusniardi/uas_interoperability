@@ -16,11 +16,11 @@ class Keluhan extends Migration
         Schema::create('keluhan', function (BluePrint $table) {
             $table->bigIncrements('keluhan_id');
 
-            $table->integer('user_id')->index('user_id_foreign');
+            $table->bigInteger('user_id')->index('user_id_foreign');
             $table->enum('jenis_keluhan', array('pelayanan', 'infrastruktur'))->default(null);
             $table->string('lokasi_keluhan', 255);
             $table->string('foto_keluhan', 100)->nullable();
-            $table->text('isi_keluhan');
+            $table->text('isi_keluhan', 65563);
 
             $table->timestamps();
         });

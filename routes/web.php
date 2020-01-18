@@ -17,15 +17,13 @@ $router->get('/', function () use ($router) {
     return $router->app->version();
 });
 
-// User Authentication
 Route::group(['prefix' => 'auth'], function () use ($router) {
+    // User Authentication
     $router->post('/user/register', 'Auth\\UserAuthController@register');
     $router->post('/user/login', 'Auth\\UserAuthController@login');
     $router->post('/user/logout', 'Auth\\UserAuthController@logout');
-});
 
-// Petugas Authentication
-Route::group(['prefix' => 'auth'], function() use ($router) {
+    // Petugas Authentication
     $router->post('/petugas/register', 'Auth\\PetugasAuthController@register');
     $router->post('/petugas/login', 'Auth\\PetugasAuthController@login');
     $router->post('/petugas/logout', 'Auth\\PetugasAuthController@logout');
@@ -40,39 +38,43 @@ Route::group(['middleware' => ['auth']], function ($router) {
     $router->delete('petugas/{id}', 'PetugasController@destroy');
 });
 
-Route::group(['middleware' => ['auth']], function ($router) {
-    // User End-Point
+   // User End-Point
     $router->get('/user', 'UserController@index');
     $router->get('/user/{id}', 'UserController@show');
     $router->put('/user', 'UserController@update');
     $router->delete('/user/{id}', 'UserController@destroy');
-});
 
     // Keluhan End-Point
-    $router->post('/keluhan', 'KeluhanController@store');
     $router->get('/keluhan', 'KeluhanController@index');
+    $router->post('/keluhan', 'KeluhanController@store');
     $router->get('/keluhan/{id}', 'KeluhanController@show');
-    $router->delete('/keluhan/{id}', 'KeluhanController@destroy');
-    $router->get('/keluhan/image/{id_keluhan}','KeluhanController@image');
     $router->put('/keluhan/{id}','KeluhanController@update');
+    $router->delete('/keluhan/{id}', 'KeluhanController@destroy');
+    
+    $router->get('/keluhan/image/{id_keluhan}','KeluhanController@image');
 
     // Saran End-Point
-    $router->post('/saran', 'SaranController@store');
     $router->get('/saran', 'SaranController@index');
+    $router->post('/saran', 'SaranController@store');
     $router->get('/saran/{id}', 'SaranController@show');
     $router->delete('/saran/{id}', 'SaranController@destroy');
     $router->put('/saran/{id}', 'SaranController@update');
 
     // Tanggapan End-Point
+    $router->get('/tanggapan', 'TanggapanController@index');
+    $router->get('/tanggapan/{id}', 'TanggapanController@show');
     $router->post('/tanggapan', 'TanggapanController@store');
     $router->put('/tanggapan/{id}', 'TanggapanController@update');
     $router->delete('tanggapan/{id}', 'TanggapanController@destroy');
 
-// Public Route - Tanggapan
-    $router->get('/public/tanggapan', 'TanggapanController@index');
-    $router->get('/public/tanggapan/{id}', 'TanggapanController@show');
 
 
-// Public Route - Saran
-    $router->get('/public/saran', 'SaranController@index');
-    $router->get('/public/saran/{id}', 'SaranController@show');
+Route::group(['prefix' => 'public'], function () use ($router) {
+    // Public Route - Tanggapan
+    $router->get('/tanggapan', 'TanggapanController@index');
+    $router->get('/tanggapan/{id}', 'TanggapanController@show');
+
+    // Public Route - Saran
+    $router->get('/saran', 'SaranController@index');
+    $router->get('/saran/{id}', 'SaranController@show');
+});

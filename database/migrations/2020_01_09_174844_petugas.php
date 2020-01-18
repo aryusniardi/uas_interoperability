@@ -16,8 +16,8 @@ class Petugas extends Migration
         Schema::create('petugas', function(BluePrint $table) {
             $table->bigIncrements('petugas_id');
 
-            $table->string('email', 100)->unique('email_unique');
-            $table->string('password', 100);
+            $table->string('email', 128)->unique('email_unique');
+            $table->string('password', 64);
             $table->enum('role', array('admin', 'super admin'))->default('admin');
 
             $table->timestamps();

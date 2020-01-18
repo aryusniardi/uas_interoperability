@@ -80,7 +80,6 @@ class KeluhanController extends Controller {
      */
 	public function store(Request $request) {
         $acceptHeader = $request->header('Accept');
-        $contentTypeHeader = $request->header('Content-Type');
 
         if (Gate::allows('admin')) {
             return response()->json([
@@ -133,7 +132,7 @@ class KeluhanController extends Controller {
      */
     public function show(Request $request, $id) {
         $acceptHeader = $request->header('Accept');
-
+        
         $keluhan = Keluhan::find($id);
 
         if (!$keluhan || $keluhan->user_id != Auth::guard('user')->user()->user_id) {
@@ -167,7 +166,14 @@ class KeluhanController extends Controller {
     }
 
     public function image($id_keluhan){
+        $keluhan = Keluhan::find($id_keluhan);
+        
         $imageName = Keluhan::Where('keluhan_id',$id_keluhan)->pluck('foto_keluhan')->first();
+
+        if ($keluhan->user_id != Auth::guard('user')->user()->user_id) {
+            abort(404);
+        }
+
         //$a = $imageName->foto_keluhan;
         $imagePath = storage_path('uploads/foto_keluhan').'/'.$imageName;
         if(file_exists($imagePath)){
@@ -194,40 +200,49 @@ class KeluhanController extends Controller {
         
         $keluhan = Keluhan::find($id);
         
+        if (Gate::allows('admin')) {
+            return response()->json([
+                'success' => false,
+                'status' => 403,
+                'message' => 'You are Unauthorized'
+            ], 403);
+        }
+
         if (!$keluhan || $keluhan->user_id != Auth::guard('user')->user()->user_id) {
             abort(404);
         }
-        
+
         $input = $request->all();
 
         $validationRules =[
             'jenis_keluhan' => 'required|in:pelayanan,infrastruktur',
             'lokasi_keluhan' => 'required',
-            //'foto_keluhan' => 'required',
             'isi_keluhan' => 'required',
         ];
-
+        
         $validator = Validator::make($input,$validationRules);
-
+        
+        if ($validator->fails()) {
+            return response()->json($validator->errors(), 400);
+        }
+        
         if ($acceptHeader === 'application/json' || $acceptHeader === 'application/xml') {
-            $keluhan = Keluhan::find($id);
-            if (!$keluhan) {
-                abort(404);
-            }
-            $keluhan->fill($input);
-            $keluhan->save();
+            if ($contentTypeHeader === 'application/json' || $contentTypeHeader === 'application/xml') {
 
-            if ($acceptHeader === 'application/json') {
-                if ($contentTypeHeader === 'application/json') {
+                $keluhan->fill($input);
+                
+                // Response Accept : 'application/json'
+                if ($acceptHeader === 'application/json' && $contentTypeHeader === 'application/json') {
+                    $keluhan->save();
                     return response()->json($keluhan, 200);
-                } else {
-                    return response('Unsupported Media Type', 403);
                 }
-            }
-            else if ($acceptHeader === 'application/xml') {
-                if ($contentTypeHeader === 'application/xml') {
-                    $xml = new \SimpleXMLElement('<Keluhan/>');
+                
+                // Response Accept : 'application/xml'
+                else if ($acceptHeader === 'application/xml' && $contentTypeHeader === 'application/xml') {
+                    $keluhan->save();
 
+                    $xml = new \SimpleXMLElement('<Keluhan/>');
+                    
                     $xml->addChild('keluhan_id', $keluhan->keluhan_id);
                     $xml->addChild('user_id', $keluhan->user_id);
                     $xml->addChild('jenis_keluhan', $keluhan->jenis_keluhan);
@@ -236,15 +251,14 @@ class KeluhanController extends Controller {
                     $xml->addChild('isi_keluhan', $keluhan->isi_keluhan);
                     $xml->addChild('created_at', $keluhan->created_at);
                     $xml->addChild('updated_at', $keluhan->updated_at);
-
+                    
                     return $xml->asXML();
                 }
                 else {
-                    return response('Unsupported Media Type', 403);
+                    return response('Not Acceptable!', 406);
                 }
-            }
-            else {
-                return response('Not Acceptable!', 406);
+            } else {
+                return response('Unsupported Media Type', 403);
             }
         }
         else {
@@ -262,13 +276,21 @@ class KeluhanController extends Controller {
     public function destroy(Request $request, $id) {
         $acceptHeader = $request->header('Accept');
 
-        $keluhan = Keluhan::find($id);
-        
-        if(!$keluhan || $keluhan->user_id != Auth::guard('user')->user()->user_id) {
-            abort(404);
+        if (Gate::allows('admin')) {
+            return response()->json([
+                'success' => false,
+                'status' => 403, 
+                'message' => 'You are Unauthorized'
+            ], 403);
         }
-        
+
         if ($acceptHeader === 'application/json' || $acceptHeader === 'application/xml') {
+            $keluhan = Keluhan::find($id);
+            
+            if(!$keluhan || $keluhan->user_id != Auth::guard('user')->user()->user_id) {
+                abort(404);
+            }
+
             $keluhan->delete();
             $response = [
                 'message' => 'Deleted Successfully!',

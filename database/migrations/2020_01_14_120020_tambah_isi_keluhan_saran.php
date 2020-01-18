@@ -14,7 +14,7 @@ class TambahIsiKeluhanSaran extends Migration
     public function up()
     {
         Schema::table('tanggapan', function (Blueprint $table) {
-            $table->text('isi')->after('petugas_id');
+            $table->text('isi', 65563)->after('petugas_id');
         });
     }
 

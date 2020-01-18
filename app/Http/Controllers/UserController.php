@@ -19,15 +19,15 @@ class UserController extends Controller {
 		$acceptHeader = $request->header('Accept');
 
 		if (Gate::denies('admin')) {
-			$user = User::OrderBy("user_id","DESC")->paginate(10);
+			$user = User::Where(['user_id' => Auth::guard('user')->user()->user_id])->OrderBy("user_id", "DESC")->paginate(1)->toArray();
 		} else {
-			$user = User::find(Auth::guard('user')->user()->user_id);
+			$user = User::OrderBy("user_id","DESC")->paginate(10);
 		}
 		
 		if ($acceptHeader === 'application/json' || $acceptHeader === 'application/xml') {
 			// Response Accept : 'application/json'
 			if ($acceptHeader === 'application/json') {
-                return response()->json($user->items('data'), 200);
+                return response()->json($user, 200);
             }
 			
 			// Response Accept : 'application/xml'
@@ -63,12 +63,12 @@ class UserController extends Controller {
 	public function show(Request $request, $id){
 		$acceptHeader = $request->header('Accept');
 
-		if (Gate::allows('admin')) {
-			$user = User::find($id);
-		} else {
-			$user = User::find(Auth::guard('user')->user()->user_id);
-		}
+		$user = User::find($id);
 		
+		if (!$user || Auth::guard('user')->user()->user_id  != $id) {
+			abort(404);
+		}
+
 		if ($acceptHeader === 'application/json' || $acceptHeader === 'application/xml') {
 			// Response Accept : 'application/json'
 			if ($acceptHeader === 'application/json') {
@@ -181,14 +181,14 @@ class UserController extends Controller {
 			], 403);
 		}
 
-		if ($acceptHeader === 'aoolication/json' || $acceptHeader === 'application/xml') {
+		if ($acceptHeader === 'application/json' || $acceptHeader === 'application/xml') {
 			$user = User::find($id);
 
 			if (!$user) {
 				abort(404);
 			}	
 
-			if (Auth::guard('user')->user()->user_id === $id) {
+			if ($id == Auth::guard('user')->user()->user_id) {
 				$user->delete();
 
 				$response = [

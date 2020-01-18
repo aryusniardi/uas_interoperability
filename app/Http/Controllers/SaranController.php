@@ -105,22 +105,16 @@ class SaranController extends Controller {
         $saran->jenis_saran = $request->input('jenis_saran');
         $saran->lokasi_saran = $request->input('lokasi_saran');
         $saran->isi_saran = $request->input('isi_saran');
-        $saran->save();
-        /*if ($acceptHeader === 'application/json' || $acceptHeader === 'application/xml') {
-            // Content-Type tolong hey :(
-            $saran->save();
-
-            return response()->json($saran, 200);
-        } else {
-            return response('Not Acceptable!', 406);
-        }*/
+        
         if ($acceptHeader === 'application/json' || $contentTypeHeader === 'application/xml') {
             if ($contentTypeHeader === 'application/json' || $contentTypeHeader === 'application/xml') {
                 if ($acceptHeader === 'application/json' && $contentTypeHeader === 'application/json') {
-                    
+                    $saran->save();
+
                     return response()->json($saran, 200);
                 }
-                elseif ($acceptHeader === 'appication/xml' && $contentTypeHeader === 'application/xml'){
+                else if ($acceptHeader === 'appication/xml' && $contentTypeHeader === 'application/xml'){
+                    $saran->save();
 
                     $xml = new \SimpleXMLElement('<saran/>');
 
@@ -137,14 +131,10 @@ class SaranController extends Controller {
                 else {
                     return response('Not Acceptable!', 406);
                 }
-            }
-            else {
+            } else {
                 return response('Unsupported Media Type', 403);
             }
-                /*$keluhan->save();
-                return response()->json($keluhan, 200);*/
-        } 
-        else {
+        } else {
             return response('Not Acceptable!', 406);
         }
     }
@@ -206,7 +196,6 @@ class SaranController extends Controller {
         }
 
         $input = $request->all();
-
 
         $validationRules = [
             'jenis_saran' => 'required|in:pelayanan,infrastruktur',
@@ -288,33 +277,30 @@ class SaranController extends Controller {
         if ($acceptHeader === 'application/json' || $acceptHeader === 'application/xml') {
             $saran = Saran::find($id);
 
-            if (!$saran) {
+            if (!$saran || $saran->user_id != Auth::guard('user')->user()->user_id) {
                 abort(404);
             }
             
-            if (Auth::guard('user')->user()->user_id === $id) {
-                $saran->delete();
-                $response = [
-                    'message' => 'Deleted Successfully!',
-                    'user_id' => $id
-                ];
+            $saran->delete();
+                
+            $response = [
+                'message' => 'Deleted Successfully!',
+                'user_id' => $id
+            ];
 
-                // Response Accept : 'application/json'
-                if ($acceptHeader === 'application/json') {
-                    return response()->json($response, 200);
-                }
+            // Response Accept : 'application/json'
+            if ($acceptHeader === 'application/json') {
+                return response()->json($response, 200);
+            }
 
-                // Response Accept : 'application/xml'
-                else {
-                    $xml = new \SimpleXMLElement('<saran/>');
+            // Response Accept : 'application/xml'
+            else {
+                $xml = new \SimpleXMLElement('<saran/>');
 
-                    $xml->addChild('message', 'Deleted Successfully!');
-                    $xml->addChild('petugas_id', $id);
+                $xml->addChild('message', 'Deleted Successfully!');
+                $xml->addChild('petugas_id', $id);
 
-                    return $xml->asXML();
-                }
-            } else {
-                return response('You are Unauthorized', 403);
+                return $xml->asXML();
             }
         } else {
             return response('Not Acceptable!', 406);

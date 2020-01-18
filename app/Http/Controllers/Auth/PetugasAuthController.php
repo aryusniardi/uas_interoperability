@@ -7,8 +7,7 @@
     use Illuminate\Support\Facades\Validator;
     use Illuminate\Validation\Rule as Rule;
     use Illuminate\Support\Facades\Auth;
-    use Illuminate\Support\Facades\Gate;
-
+    
 class PetugasAuthController extends Controller {
         /**
          * Store a new Petugas
@@ -25,7 +24,7 @@ class PetugasAuthController extends Controller {
             ]);
 
             $input = $request->all();
-
+            $acceptHeader = $request->header('Accept');
             // Validation Starts
             $validationRules = [
                 'email' => 'required|email|unique:petugas',
@@ -47,9 +46,29 @@ class PetugasAuthController extends Controller {
             $petugas->password = app('hash')->make($plainPassword);
             $petugas->role = $request->input('role');
 
-            $petugas->save();
+            
+            if ($acceptHeader === 'application/json' || $acceptHeader === 'application/xml') {
+                $petugas->save();
 
-            return response()->json($petugas, 200);
+                // Response Accept : 'application/json'
+                if ($acceptHeader === 'application/json') {
+                    return response()->json($petugas, 200);
+                    
+                } 
+                
+                // Response Accept : 'application/xml'
+                else {
+                    $xml = new \SimpleXMLElement('<Petugas/>');
+
+                    $xml->addChild('email', $petugas->email);
+                    $xml->addChild('password', $petugas->password);
+                    $xml->addChild('role', $petugas->role);
+
+                    return $xml->asXML();
+                }
+            } else {
+                return response('Not Acceptable!', 403);
+            }
         }
 
         /**
@@ -59,6 +78,7 @@ class PetugasAuthController extends Controller {
          * @return Response
          */
         public function login(Request $request) {
+            $acceptHeader = $request->header('Accept');
             $input = $request->all();
 
             // Validation Rules
@@ -73,29 +93,71 @@ class PetugasAuthController extends Controller {
                 return response()->json($validator->errors(), 400);
             }
 
-            // Login Process
-            $credentials = $request->only(['email', 'password']);
-            if (!$token = Auth::guard('admin')->attempt($credentials)) {
-                return response()->json(['message' => 'Unauthorized'], 401);
-            }
+            if ($acceptHeader === 'application/json' || $acceptHeader === 'application/xml') {
+                $credentials = $request->only(['email', 'password']);
+                if (!$token = Auth::guard('admin')->attempt($credentials)) {
+                    return response()->json(['message' => 'Unauthorized'], 401);
+                }
 
-            return response()->json([
-                'token' => $token,
-                'token_type' => 'bearier',
-                'expires_in' => Auth::factory('admin')->getTTL() * 60
-            ], 200);
+                $response = [
+                    'token' => $token,
+                    'token_type' => 'bearier',
+                    'expires_in' => Auth::factory('admin')->getTTL() * 60
+                ];
+
+                // Response Accept : 'application/json'
+                if ($acceptHeader === 'application/json') {
+                    return response()->json($response, 200);
+                } 
+                
+                // Response Accept : 'application/xml'
+                else {
+                    $xml = new \SimpleXMLElement('<Response/>');
+
+                    $xml->addChild('token', $response['token']);
+                    $xml->addChild('token_type', $response['token_type']);
+                    $xml->addChild('expires_in', $response['expires_in']);
+
+                    return $xml->asXML();
+                }
+            } else {
+                return response('Not Acceptable!', 403);
+            }
+            // Login Process
         }
 
         /**
          * Logout.
          */
-        public function logout() {
-            Auth::guard('admin')->logout();
+        public function logout(Request $request) {
+            $acceptHeader = $request->header('Accept');
+            if ($acceptHeader === 'application/json' || $acceptHeader === 'application/xml') {
+                $response = [
+                    'status' => 'success',
+                    'message' => 'logout'
+                ];
 
-            return response()->json([
-                'status' => 'success',
-                'message' => 'logout',
-            ], 200);
+                // Response Accept : 'application/json'
+                if ($acceptHeader === 'application/json') {
+                    Auth::guard('admin')->logout();
+
+                    return response()->json($response, 200);
+                } 
+                
+                // Response Accept : 'application/xml'
+                else {
+                    Auth::guard('admin')->logout();
+
+                    $xml = new \SimpleXMLElement('<Response/>');
+
+                    $xml->addChild('status', $response['status']);
+                    $xml->addChild('message', $response['message']);
+
+                    return $xml->asXML();
+                }
+            } else {
+                return response('Not Acceptable!', 403);
+            }
         }
     }
 ?>

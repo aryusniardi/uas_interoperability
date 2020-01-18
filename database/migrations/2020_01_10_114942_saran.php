@@ -16,10 +16,10 @@ class Saran extends Migration
         Schema::create('saran', function (BluePrint $table) {
             $table->bigIncrements('saran_id');
 
-            $table->integer('user_id')->index('user_id_foreign');
-            $table->enum('jenis_saran', array('pelayanan', 'infrastruktur'))->default(null);
+            $table->bigInteger('user_id')->index('user_id_foreign');
+            $table->enum('jenis_saran', array('pelayanan', 'infrastuktur'))->default(null);
             $table->string('lokasi_saran', 255);
-            $table->text('isi_saran');
+            $table->text('isi_saran', 65563);
 
             $table->timestamps();
         });

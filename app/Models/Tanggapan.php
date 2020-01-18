@@ -28,3 +28,4 @@
              return $this->hasMany('App\Models\Keluhan');
          }
     }
+?>

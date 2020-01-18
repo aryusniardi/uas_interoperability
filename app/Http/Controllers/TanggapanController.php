@@ -169,13 +169,13 @@ class TanggapanController extends Controller {
     public function show(Request $request, $id) {
         $acceptHeader = $request->header('Accept');
         
-        if ($acceptHeader === 'application/json' || $acceptHeader === 'application/xml') {
-            $tanggapan = Tanggapan::find($id);
+        $tanggapan = Tanggapan::find($id);
+        
+        if (!$tanggapan) {
+            abort(404);
+        }
 
-            if (!$tanggapan) {
-                abort(404);
-            }
-            
+        if ($acceptHeader === 'application/json' || $acceptHeader === 'application/xml') {    
             // Response Accept : 'application/json'
             if ($acceptHeader === 'application/json') {
                 return response()->json($tanggapan, 200);
@@ -224,9 +224,9 @@ class TanggapanController extends Controller {
 
         // Validation Rules
         $validationRules = [
-            'keluhan_id' => 'required|exist:keluhan, keluhan_id',
-            'petugas_id' => Auth::guard('admin')->user()->petugas_id,
-            'tanggapan' => 'required|in:diterima, ditolak',
+            'tanggapan_id' => $id,
+            'isi' => 'required',
+            'tanggapan' => 'required|in:diterima,ditolak',
             'alasan' => 'required|min:24'
         ];
 

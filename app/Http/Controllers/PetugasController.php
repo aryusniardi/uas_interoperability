@@ -173,7 +173,7 @@ class PetugasController extends Controller {
 
         // Validation Rules
         $validationRules = [
-            'email' => 'required|min:5|unique',
+            'email' => 'required|min:5|unique:petugas',
             'password' => 'required|min:6',
             'role' => 'required|in:super admin,admin',
             'user_id' => $id
