@@ -1,0 +1,21 @@
+version: '3.1'      #deklarasi versi dari doccker-compose
+
+services: 
+  db: 
+    image: mysql:5.7 #versi dari service database yang digunakan
+    environment: 
+      - MYSQL_ROOT_PASSWORD=password  #root password yang diberikan kepada database
+      - MYSQL_DATABASE=public         #nama database yang diberikan kepada database
+    restart: unless-stopped           #memberikan statement agar otomatis restart ketika service mati, kecuali dimatikan dengan sengaja
+    volumes:
+      - ./mysql-data:/var/lib/mysql   #folder yang di share ke dalam container
+
+  app:
+    build: .
+    restart: unless-stopped           #memberikan statement agar otomatis restart ketika service mati, kecuali dimatikan dengan sengaja
+    volumes:
+      - ./:/var/www/html              #folder yang di share ke dalam container
+    ports:
+      - "${POST:-3000}:80"            #inisiate port yang akan digunakan
+    depends_on:
+      - db                            #service lain yang dibutuhkan untuk menjalankan service
